@@ -1,7 +1,7 @@
 {
-  "name": "module-boilerplate",
+  "name": "urlx",
   "version": "0.0.0",
-  "description": "LaWallet Module Boilerplate",
+  "description": "Bridge between lawallet and the outside world",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
