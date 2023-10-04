@@ -10,6 +10,9 @@ import redis from '@services/redis';
 const log: Debugger = logger.extend('nostr:subscriptionName');
 const warn: Debugger = log.extend('warn');
 const debug: Debugger = log.extend('debug');
+const invoiceAmountRegex: RegExp = new RegExp(
+  '^\\D+(?<amount>\\d+)(?<multiplier>.{0,1})1.*$',
+);
 
 const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
@@ -17,6 +20,35 @@ const filter: NDKFilter = {
   '#t': ['internal-transaction-ok'],
   since: Math.round(Date.now() / 1000) - 86000,
 };
+
+/**
+ * Extract invoice amount in millisats from invoice
+ */
+function extractAmount(invoice: string): number | null {
+  const groups = invoiceAmountRegex.exec(invoice)?.groups;
+  if (undefined === groups) {
+    return null;
+  }
+  let mul: number;
+  switch (groups.multiplier) {
+    case 'p': // picobitcoin
+      mul = 1e-1;
+      break;
+    case 'n': // nanobitcoin
+      mul = 1e2;
+      break;
+    case 'u': // microbitcoin
+      mul = 1e5;
+      break;
+    case 'm': // millibitcoin
+      mul = 1e8;
+      break;
+    default: // bitcoin
+      mul = 1e11;
+      break;
+  }
+  return Number.parseInt(groups.amount) * mul;
+}
 
 /**
  * Return the internal-transaction-ok handler
@@ -54,6 +86,13 @@ const getHandler = (): ((event: NostrEvent) => void) => {
     const content = JSON.parse(startEvent.content);
     if (undefined === content.memo) {
       warn('Received internal tx without invoice');
+      outbox.publish(revertTx(startEvent));
+      await redis.hSet(eventId, 'handled', 'true');
+      return;
+    }
+    if (content.tokens.bitcoin !== extractAmount(content.memo)) {
+      warn('Content amount and invoice amount are different');
+      outbox.publish(revertTx(startEvent));
       await redis.hSet(eventId, 'handled', 'true');
       return;
     }
@@ -65,7 +104,6 @@ const getHandler = (): ((event: NostrEvent) => void) => {
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);
-        log('event: %O', revertTx(startEvent));
         outbox.publish(revertTx(startEvent));
       })
       .finally(async () => {
