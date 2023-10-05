@@ -1,4 +1,5 @@
 import { NDKEvent, NostrEvent } from '@nostr-dev-kit/ndk';
+import { nip26 } from 'nostr-tools';
 
 import { nowInSeconds, requiredEnvVar } from '@lib/utils';
 
@@ -57,6 +58,9 @@ export function lnOutboundTx(event: NDKEvent): NostrEvent {
 export function revertTx(event: NDKEvent): NostrEvent {
   const content = JSON.parse(event.content);
   content.memo = 'Revert failed outbound';
+  const author = event.tags.some((t) => 'delegation' === t[0])
+    ? nip26.getDelegator(event)
+    : event.pubkey;
   return {
     content: JSON.stringify(content),
     created_at: nowInSeconds(),
@@ -64,7 +68,7 @@ export function revertTx(event: NDKEvent): NostrEvent {
     pubkey: requiredEnvVar('NOSTR_PUBLIC_KEY'),
     tags: [
       ['p', requiredEnvVar('LEDGER_PUBLIC_KEY')],
-      ['p', event.author.hexpubkey()],
+      ['p', author],
       ['e', event.id],
       ['t', 'internal-transaction-start'],
     ],
