@@ -9,13 +9,12 @@ import outbox from '@services/outbox';
 import 'websocket-polyfill';
 
 import { logger } from './lib/utils';
-import prisma from '@services/prisma';
 
 const port = process.env.PORT || 8000;
 
 const log: Debugger = logger.extend('index');
 
-const ctx: Context = { prisma, outbox };
+const ctx: Context = { outbox };
 
 // Generate routes
 log('Setting up routes...');

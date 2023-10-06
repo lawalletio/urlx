@@ -1,17 +1,5 @@
 version: "3.8"
 services:
-  postgres:
-    container_name: postgres
-    image: postgres:15
-    restart: always
-    environment:
-      DATABASE_HOST: localhost
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: root
-      POSTGRES_DB: lawallet-extension
-    ports:
-      - 5432:5432
-
   app:
     build:
       context: ./
@@ -22,6 +10,3 @@ services:
       - ./.env
     environment:
       NODE_ENV: production
-      DATABASE_URL: "postgresql://root:root@postgres/lawallet-extension"
-    depends_on:
-      - postgres
