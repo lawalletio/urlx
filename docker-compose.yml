@@ -13,6 +13,8 @@ services:
       REDIS_URI: redis://cache:6379
     depends_on:
       - cache
+    networks:
+      - lawallet
   cache:
     image: redis:7-alpine
     restart: always
@@ -21,6 +23,11 @@ services:
     command: redis-server --save 20 1
     volumes:
       - cache:/data
+    networks:
+      - lawallet
 volumes:
   cache:
     driver: local
+networks:
+  lawallet:
+    external: true
