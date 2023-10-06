@@ -84,20 +84,21 @@ const getHandler = (): ((event: NostrEvent) => void) => {
       return;
     }
     const content = JSON.parse(startEvent.content);
-    if (undefined === content.memo) {
+    const bolt11Tag = startEvent.tags.find((t) => 'bolt11' === t[0]);
+    if (undefined === bolt11Tag) {
       warn('Received internal tx without invoice');
       outbox.publish(revertTx(startEvent));
       await redis.hSet(eventId, 'handled', 'true');
       return;
     }
-    if (content.tokens.bitcoin !== extractAmount(content.memo)) {
+    if (content.tokens.bitcoin !== extractAmount(bolt11Tag[1])) {
       warn('Content amount and invoice amount are different');
       outbox.publish(revertTx(startEvent));
       await redis.hSet(eventId, 'handled', 'true');
       return;
     }
     lnd
-      .payInvoice(content.memo)
+      .payInvoice(bolt11Tag[1])
       .then(() => {
         log('Paid invoice for: %O', startEvent.id);
         outbox.publish(lnOutboundTx(startEvent));
