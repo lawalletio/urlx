@@ -5,8 +5,22 @@ services:
       context: ./
       target: runner
     ports:
-      - 3000:3000
+      - 3001:3000
     env_file:
       - ./.env
     environment:
       NODE_ENV: production
+      REDIS_URI: redis://cache:6379
+    depends_on:
+      - cache
+  cache:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1
+    volumes:
+      - cache:/data
+volumes:
+  cache:
+    driver: local
