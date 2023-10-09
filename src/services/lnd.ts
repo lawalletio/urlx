@@ -14,7 +14,7 @@ const error: Debugger = log.extend('error');
  * Handles communication with LND.
  *
  * Responsible for keeping the gRPC connection with LND and makes
- * available methods for generating and paying invocies. Also includes
+ * available methods for generating and paying invoices. Also includes
  * the subscriptions to received payments.
  */
 class LndService {
@@ -66,9 +66,9 @@ class LndService {
   }
 
   /**
-   * Connects to LND throught gRPC
+   * Connects to LND through gRPC
    *
-   * Throws on errors and retries on disconnect.
+   * Throws on errors.
    */
   private async connect() {
     log('before connect, state: %s', this.grpc.state);

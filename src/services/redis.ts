@@ -9,8 +9,7 @@ const error: Debugger = log.extend('error');
 /**
  * Thin wrapper for redis client.
  *
- * Centralizes the connection handling but makes available the client
- * directly.
+ * Centralizes the connection handling but makes the client directly available.
  */
 class RedisService {
   client: RedisClientType;
@@ -30,7 +29,7 @@ class RedisService {
       throw e;
     });
     await this.client.connect();
-    log('Redis service initializated');
+    log('Redis service initialized');
   }
 }
 

@@ -16,7 +16,7 @@ const npubRegex: RegExp = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{6,}$/;
 /**
  * Extract a valid pubkey from a string
  *
- * Check if a string is a valid hex pubkey or npub and return it hex
+ * Check if a string is a valid hex pubkey or npub and return its hex
  * representation if valid, null otherwise.
  */
 function validPubkey(pubkey: string): string | null {
