@@ -10,9 +10,7 @@ import redis from '@services/redis';
 const log: Debugger = logger.extend('nostr:subscriptionName');
 const warn: Debugger = log.extend('warn');
 const debug: Debugger = log.extend('debug');
-const invoiceAmountRegex: RegExp = new RegExp(
-  '^\\D+(?<amount>\\d+)(?<multiplier>.{0,1})1.*$',
-);
+const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
 
 const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
@@ -25,29 +23,20 @@ const filter: NDKFilter = {
  * Extract invoice amount in millisats from invoice
  */
 function extractAmount(invoice: string): number | null {
-  const groups = invoiceAmountRegex.exec(invoice)?.groups;
-  if (undefined === groups) {
+  const matches = invoice.match(invoiceAmountRegex);
+  if (matches?.groups) {
+    const multipliers: Record<string, number> = {
+      p: 1e-1,  // picobitcoin
+      n: 1e2,   // nanobitcoin
+      u: 1e5,   // microbitcoin
+      m: 1e8,   // millibitcoin
+      '': 1e11, // bitcoin (default)
+    };
+
+    return Number.parseInt(matches.groups.amount) * multipliers[matches.groups.multiplier];
+  } else {
     return null;
   }
-  let mul: number;
-  switch (groups.multiplier) {
-    case 'p': // picobitcoin
-      mul = 1e-1;
-      break;
-    case 'n': // nanobitcoin
-      mul = 1e2;
-      break;
-    case 'u': // microbitcoin
-      mul = 1e5;
-      break;
-    case 'm': // millibitcoin
-      mul = 1e8;
-      break;
-    default: // bitcoin
-      mul = 1e11;
-      break;
-  }
-  return Number.parseInt(groups.amount) * mul;
 }
 
 /**
