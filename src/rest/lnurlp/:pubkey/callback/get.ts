@@ -23,7 +23,7 @@ function validPubkey(pubkey: string): string | null {
   if (lowHex32BRegex.test(pubkey)) {
     return pubkey;
   } else if (npubRegex.test(pubkey)) {
-    pubkey = nip19.decode<'npub'>(pubkey).data;
+    pubkey = nip19.decode<'npub'>(pubkey as `npub1${string}`).data;
     return lowHex32BRegex.test(pubkey) ? pubkey : null;
   }
   return null;
