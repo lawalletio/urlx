@@ -7,7 +7,7 @@ import { Kind, lnOutboundTx, revertTx } from '@lib/events';
 import lnd from '@services/lnd';
 import redis from '@services/redis';
 
-const log: Debugger = logger.extend('nostr:subscriptionName');
+const log: Debugger = logger.extend('nostr:internalTransaction');
 const warn: Debugger = log.extend('warn');
 const debug: Debugger = log.extend('debug');
 const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
