@@ -29,7 +29,7 @@ class LndService {
     this.connect().then(() => this.setUpSubscriptions());
   }
 
-  async generateInvoice(amount: number): Promise<AddInvoiceResponse> {
+  async generateInvoice(amount: bigint): Promise<AddInvoiceResponse> {
     await this.grpc.waitForState('active');
     const { Lightning } = this.grpc.services;
     return Lightning.addInvoice({

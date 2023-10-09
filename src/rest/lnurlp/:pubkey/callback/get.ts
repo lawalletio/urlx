@@ -43,8 +43,13 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     res.status(422).send();
     return;
   }
-  const amount = Number.parseFloat(req.query.amount);
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
+  let amount;
+  try {
+    amount = BigInt(req.query.amount);
+  } catch {
+    debug('Amount is not an integer');
+  }
+  if (undefined === amount || amount <= 0) {
     debug('Amount is not a positive integer');
     res.status(422).send();
     return;

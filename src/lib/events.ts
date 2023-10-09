@@ -13,7 +13,7 @@ export enum Kind {
  * Create an inbound transaction event based on paid invoice
  */
 export function lnInboundTx(
-  amount: number,
+  amount: bigint,
   invoice: string,
   pubkey: string,
 ): NostrEvent {

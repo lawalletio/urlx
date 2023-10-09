@@ -22,21 +22,27 @@ const filter: NDKFilter = {
 /**
  * Extract invoice amount in millisats from invoice
  */
-function extractAmount(invoice: string): number | null {
+function extractAmount(invoice: string): bigint | null {
   const matches = invoice.match(invoiceAmountRegex);
   if (matches?.groups) {
     const multipliers: Record<string, number> = {
-      p: 1e-1,  // picobitcoin
-      n: 1e2,   // nanobitcoin
-      u: 1e5,   // microbitcoin
-      m: 1e8,   // millibitcoin
+      p: 1e-1, // picobitcoin
+      n: 1e2, // nanobitcoin
+      u: 1e5, // microbitcoin
+      m: 1e8, // millibitcoin
       '': 1e11, // bitcoin (default)
     };
 
-    return Number.parseInt(matches.groups.amount) * multipliers[matches.groups.multiplier];
-  } else {
-    return null;
+    try {
+      return (
+        BigInt(matches.groups.amount) *
+        BigInt(multipliers[matches.groups.multiplier])
+      );
+    } catch {
+      debug('Unparsable invoice amount');
+    }
   }
+  return null;
 }
 
 /**
