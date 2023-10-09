@@ -24,10 +24,7 @@ class RedisService {
   private async connect() {
     this.client.on('connect', () => log('Connecting to redis'));
     this.client.on('ready', () => log('Connected to redis'));
-    this.client.on('end', () => {
-      warn('Redis ended connection');
-      this.connect();
-    });
+    this.client.on('end', () => warn('Redis ended connection'));
     this.client.on('error', (e) => {
       error('Redis error: %O', e);
       throw e;

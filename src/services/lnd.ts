@@ -7,6 +7,7 @@ import outbox from './outbox';
 import { lnInboundTx } from '@lib/events';
 
 const log: Debugger = logger.extend('services:lnd');
+const warn: Debugger = log.extend('warn');
 const error: Debugger = log.extend('error');
 
 /**
@@ -78,10 +79,7 @@ class LndService {
     log('after connect, state: %s', this.grpc.state);
     this.grpc.on('locked', () => log('wallet locked!'));
     this.grpc.on('active', () => log('wallet unlocked!'));
-    this.grpc.on('disconnected', () => {
-      log('Disconnected from lnd, connecting again...');
-      this.connect().then(() => this.setUpSubscriptions());
-    });
+    this.grpc.on('disconnected', () => warn('Disconnected from lnd'));
     this.grpc.on('error', (e: Error) => {
       error('Unexpected error: %O', e);
       throw e;
