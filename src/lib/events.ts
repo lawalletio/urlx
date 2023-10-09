@@ -1,5 +1,5 @@
 import { NDKEvent, NostrEvent } from '@nostr-dev-kit/ndk';
-import { nip26 } from 'nostr-tools';
+import { nip26, Event } from 'nostr-tools';
 
 import { nowInSeconds, requiredEnvVar } from '@lib/utils';
 
@@ -59,7 +59,7 @@ export function revertTx(event: NDKEvent): NostrEvent {
   const content = JSON.parse(event.content);
   content.memo = 'Revert failed outbound';
   const author = event.tags.some((t) => 'delegation' === t[0])
-    ? nip26.getDelegator(event)
+    ? nip26.getDelegator(event as Event<number>)
     : event.pubkey;
 
   if (null === author) {
