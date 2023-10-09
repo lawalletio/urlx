@@ -61,6 +61,11 @@ export function revertTx(event: NDKEvent): NostrEvent {
   const author = event.tags.some((t) => 'delegation' === t[0])
     ? nip26.getDelegator(event)
     : event.pubkey;
+
+  if (null === author) {
+    throw new Error('Invalid author');
+  }
+
   return {
     content: JSON.stringify(content),
     created_at: nowInSeconds(),
