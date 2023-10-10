@@ -50,6 +50,55 @@ function extractAmount(invoice: string): bigint | null {
 }
 
 /**
+ * Extract value of first "p" tag, or null if none found
+ */
+function extractFirstP(event: NostrEvent): string | null {
+  try {
+    return event.tags.filter((t) => 'p' === t[0])[0][1];
+  } catch {
+    /* ... */
+  }
+  return null;
+}
+
+/**
+ * Extract value of first "e" tag, or null if none found
+ */
+function extractFirstE(event: NostrEvent): string | null {
+  try {
+    return event.tags.filter((t) => 'e' === t[0])[0][1];
+  } catch {
+    /* ... */
+  }
+  return null;
+}
+
+/**
+ * Extract value of first "bolt11" tag, or null if none found
+ */
+function extractBolt11(event: NDKEvent): string | null {
+  const bolt11 = event.tags.find((t) => 'bolt11' === t[0]);
+  if (undefined !== bolt11) {
+    return bolt11[1];
+  }
+  return null;
+}
+
+/**
+ * Mark the given event id as handled in Redis
+ */
+async function markHandled(eventId: string) {
+  redis.hSet(eventId, 'handled', 'true');
+}
+
+/**
+ * Publish a revert of the given event
+ */
+function doRevertTx(event: NDKEvent): void {
+  outbox.publish(revertTx(event));
+}
+
+/**
  * Return the internal-transaction-ok handler
  */
 const getHandler = (): ((event: NostrEvent) => void) => {
@@ -61,53 +110,75 @@ const getHandler = (): ((event: NostrEvent) => void) => {
    * outbound transaction on success or a revert transaction on error.
    */
   return async (event: NostrEvent) => {
-    const target = event.tags.filter((t) => 'p' === t[0])[0][1];
-    // originated by me
-    if (requiredEnvVar('NOSTR_PUBLIC_KEY') === target) {
-      return;
-    }
     if (event.id === undefined) {
       throw new Error('Received event without id from relay');
     }
+
     const eventId: string = event.id;
+
     if ((await redis.hGet(eventId, 'handled')) !== null) {
       debug('Already handled event %s', eventId);
       return;
     }
-    const startEventId = event.tags.filter((t) => 'e' === t[0])[0][1];
+
+    const target = extractFirstP(event);
+    const startEventId = extractFirstE(event);
+
+    if (null === target) {
+      warn('No target found');
+    }
+    if (null === startEventId) {
+      warn('No starting event found');
+    }
+    if (null === target || null === startEventId) {
+      return;
+    }
+
+    // originated by me
+    if (requiredEnvVar('NOSTR_PUBLIC_KEY') === target) {
+      return;
+    }
+
     const startEvent = await outbox.getEvent(startEventId);
+
     debug('start event: %O', startEvent);
+
     if (startEvent === null) {
-      warn('Did not found internalTx start for ok');
-      await redis.hSet(eventId, 'handled', 'true');
+      warn('Did not find internalTx start for ok');
+      await markHandled(eventId);
       return;
     }
-    const content = JSON.parse(startEvent.content);
-    const bolt11Tag = startEvent.tags.find((t) => 'bolt11' === t[0]);
-    if (undefined === bolt11Tag) {
+
+    const bolt11 = extractBolt11(startEvent);
+
+    if (null === bolt11) {
       warn('Received internal tx without invoice');
-      outbox.publish(revertTx(startEvent));
-      await redis.hSet(eventId, 'handled', 'true');
+      doRevertTx(startEvent);
+      await markHandled(eventId);
       return;
     }
-    if (content.tokens.bitcoin !== extractAmount(bolt11Tag[1])) {
+
+    const content = JSON.parse(startEvent.content);
+
+    if (content.tokens.bitcoin !== extractAmount(bolt11)) {
       warn('Content amount and invoice amount are different');
-      outbox.publish(revertTx(startEvent));
-      await redis.hSet(eventId, 'handled', 'true');
+      doRevertTx(startEvent);
+      await markHandled(eventId);
       return;
     }
+
     lnd
-      .payInvoice(bolt11Tag[1])
+      .payInvoice(bolt11)
       .then(() => {
         log('Paid invoice for: %O', startEvent.id);
         outbox.publish(lnOutboundTx(startEvent));
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);
-        outbox.publish(revertTx(startEvent));
+        doRevertTx(startEvent);
       })
       .finally(async () => {
-        await redis.hSet(eventId, 'handled', 'true');
+        await markHandled(eventId);
       });
   };
 };
