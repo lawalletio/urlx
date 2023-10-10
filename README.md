@@ -1,7 +1,7 @@
 # lawallet URLx
 
 This module acts as a bridge between lawallet transactions and the outside world by reacting and
-emiting inbound and outbound transactions
+emitting inbound and outbound transactions
 
 ## Installation
 
