@@ -10,21 +10,45 @@ import redis from '@services/redis';
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
 const debug: Debugger = log.extend('debug');
 
-const lowHex32BRegex: RegExp = /^[0-9a-f]{64}$/;
-const npubRegex: RegExp = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{6,}$/;
-
 /**
- * Extract a valid pubkey from a string
+ * Extract a valid pubkey from the given argument
  *
- * Check if a string is a valid hex pubkey or npub and return its hex
+ * Check if the given argument is a valid hex pubkey or npub and return its hex
  * representation if valid, null otherwise.
  */
-function validPubkey(pubkey: string): string | null {
-  if (lowHex32BRegex.test(pubkey)) {
-    return pubkey;
-  } else if (npubRegex.test(pubkey)) {
-    pubkey = nip19.decode<'npub'>(pubkey as `npub1${string}`).data;
-    return lowHex32BRegex.test(pubkey) ? pubkey : null;
+function validatePubkey(pubkey: any): string | null {
+  const lowHex32BRegex: RegExp = /^[0-9a-f]{64}$/;
+  const npubRegex: RegExp = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{6,}$/;
+
+  if (typeof pubkey === 'string') {
+    if (lowHex32BRegex.test(pubkey)) {
+      return pubkey;
+    } else if (npubRegex.test(pubkey)) {
+      return validatePubkey(
+        nip19.decode<'npub'>(pubkey as `npub1${string}`).data,
+      );
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract a valid amount from the given argument
+ *
+ * Check if the given argument is a valid amount its bigint representation
+ * if valid, null otherwise.
+ */
+function validateAmount(amount: any): bigint | null {
+  if (typeof amount === 'string') {
+    let parsedAmount;
+    try {
+      parsedAmount = BigInt(amount);
+      if (0n <= parsedAmount) {
+        return parsedAmount;
+      }
+    } catch {
+      /* ... */
+    }
   }
   return null;
 }
@@ -38,28 +62,21 @@ function validPubkey(pubkey: string): string | null {
  * receive the funds.
  */
 const handler = async (req: ExtendedRequest, res: Response) => {
-  if (typeof req.query.amount !== 'string') {
-    debug('Received request without amount');
-    res.status(422).send();
-    return;
+  const amount = validateAmount(req.query?.amount);
+  if (amount === null) {
+    debug('Invalid amount');
   }
-  let amount;
-  try {
-    amount = BigInt(req.query.amount);
-  } catch {
-    debug('Amount is not an integer');
-  }
-  if (undefined === amount || amount <= 0) {
-    debug('Amount is not a positive integer');
-    res.status(422).send();
-    return;
-  }
-  const pubkey = validPubkey(req.params.pubkey);
+
+  const pubkey = validatePubkey(req.params?.pubkey);
   if (pubkey === null) {
     debug('Invalid pubkey');
+  }
+
+  if (null === amount || null === pubkey) {
     res.status(422).send();
     return;
   }
+
   const invoice = await lnd.generateInvoice(amount);
   redis.set(invoice.r_hash, pubkey, { NX: true });
   res.status(200).json({ pr: invoice.payment_request, routes: [] }).send();
