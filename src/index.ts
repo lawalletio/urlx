@@ -1,14 +1,20 @@
 import app from './app';
+
 import path from 'path';
 import { Debugger } from 'debug';
+
 import express, { Router } from 'express';
-import * as middlewares from './lib/middlewares';
+
+import * as middlewares from '@lib/middlewares';
 import { EmptyRoutesError, setUpRoutes } from '@lib/utils';
-import { Context, ExtendedRequest } from '@type/request';
+
 import outbox from '@services/outbox';
+
+import { Context, ExtendedRequest } from '@type/request';
+
 import 'websocket-polyfill';
 
-import { logger } from './lib/utils';
+import { logger } from '@lib/utils';
 
 const port = process.env.PORT || 8000;
 

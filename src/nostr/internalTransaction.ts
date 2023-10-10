@@ -1,15 +1,19 @@
 import { Debugger } from 'debug';
-import type { NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
 
-import { logger, requiredEnvVar } from '../lib/utils';
-import outbox from '@services/outbox';
+import type { NDKEvent, NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
+
 import { Kind, lnOutboundTx, revertTx } from '@lib/events';
+import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
+
 import lnd from '@services/lnd';
+import outbox from '@services/outbox';
 import redis from '@services/redis';
 
 const log: Debugger = logger.extend('nostr:internalTransaction');
+
 const warn: Debugger = log.extend('warn');
 const debug: Debugger = log.extend('debug');
+
 const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
 
 const filter: NDKFilter = {
