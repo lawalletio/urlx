@@ -18,7 +18,9 @@ export function lnInboundTx(
   pubkey: string,
 ): NostrEvent {
   const content = {
-    tokens: { bitcoin: amount },
+    tokens: {
+      bitcoin: amount,
+    },
     memo: invoice,
   };
   return {
