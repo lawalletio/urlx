@@ -34,7 +34,7 @@ class LndService {
     await this.grpc.waitForState('active');
     const { Lightning } = this.grpc.services;
     return Lightning.addInvoice({
-      value_msat: amount,
+      value_msat: amount.toString(),
     });
   }
 
