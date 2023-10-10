@@ -20,7 +20,7 @@ const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
   '#p': [requiredEnvVar('NOSTR_PUBLIC_KEY')],
   '#t': ['internal-transaction-ok'],
-  since: Math.round(Date.now() / 1000) - 86000,
+  since: nowInSeconds() - 86000,
 };
 
 /**
