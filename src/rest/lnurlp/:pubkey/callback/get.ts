@@ -10,7 +10,7 @@ import redis from '@services/redis';
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
 const debug: Debugger = log.extend('debug');
 
-const lowHex32BRegex: RegExp = /^\x{64}$/;
+const lowHex32BRegex: RegExp = /^[0-9a-f]{64}$/;
 const npubRegex: RegExp = /^npub1[023456789acdefghjklmnpqrstuvwxyz]{6,}$/;
 
 /**
