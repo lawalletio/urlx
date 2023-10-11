@@ -158,7 +158,9 @@ const getHandler = (): ((event: NostrEvent) => void) => {
       return;
     }
 
-    const content = JSON.parse(startEvent.content);
+    const content = JSON.parse(startEvent.content, (k, v) =>
+      isNaN(v) ? v : BigInt(v),
+    );
 
     if (content.tokens.bitcoin !== extractAmount(bolt11)) {
       warn('Content amount and invoice amount are different');
