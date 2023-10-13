@@ -6,8 +6,10 @@ import { Kind, lnOutboundTx, revertTx } from '@lib/events';
 import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
 
 import lnd from '@services/lnd';
-import outbox from '@services/outbox';
 import redis from '@services/redis';
+import { Context } from '@type/request';
+import { Outbox } from '@services/outbox';
+import { getReadNDK } from '@services/ndk';
 
 const log: Debugger = logger.extend('nostr:internalTransaction');
 
@@ -94,14 +96,14 @@ async function markHandled(eventId: string) {
 /**
  * Publish a revert of the given event
  */
-function doRevertTx(event: NDKEvent): void {
+function doRevertTx(outbox: Outbox, event: NDKEvent): void {
   outbox.publish(revertTx(event));
 }
 
 /**
  * Return the internal-transaction-ok handler
  */
-const getHandler = (): ((event: NostrEvent) => void) => {
+const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
   /**
    * Handle internal-transaction-ok
    *
@@ -139,7 +141,7 @@ const getHandler = (): ((event: NostrEvent) => void) => {
       return;
     }
 
-    const startEvent = await outbox.getEvent(startEventId);
+    const startEvent = await getReadNDK().fetchEvent(startEventId);
 
     debug('start event: %O', startEvent);
 
@@ -153,7 +155,7 @@ const getHandler = (): ((event: NostrEvent) => void) => {
 
     if (null === bolt11) {
       warn('Received internal tx without invoice');
-      doRevertTx(startEvent);
+      doRevertTx(ctx.outbox, startEvent);
       await markHandled(eventId);
       return;
     }
@@ -164,7 +166,7 @@ const getHandler = (): ((event: NostrEvent) => void) => {
 
     if (content.tokens.bitcoin !== extractAmount(bolt11)) {
       warn('Content amount and invoice amount are different');
-      doRevertTx(startEvent);
+      doRevertTx(ctx.outbox, startEvent);
       await markHandled(eventId);
       return;
     }
@@ -173,11 +175,11 @@ const getHandler = (): ((event: NostrEvent) => void) => {
       .payInvoice(bolt11)
       .then(() => {
         log('Paid invoice for: %O', startEvent.id);
-        outbox.publish(lnOutboundTx(startEvent));
+        ctx.outbox.publish(lnOutboundTx(startEvent));
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);
-        doRevertTx(startEvent);
+        doRevertTx(ctx.outbox, startEvent);
       })
       .finally(async () => {
         await markHandled(eventId);

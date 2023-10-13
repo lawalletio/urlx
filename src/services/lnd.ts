@@ -3,8 +3,9 @@ import { AddInvoiceResponse, ILndGrpc } from '@type/lnd-grpc';
 import { logger, requiredEnvVar } from '@lib/utils';
 import { Debugger } from 'debug';
 import redis from '@services/redis';
-import outbox from './outbox';
 import { lnInboundTx } from '@lib/events';
+import { Outbox, OutboxService } from '@services/outbox';
+import { getWriteNDK } from '@services/ndk';
 
 const log: Debugger = logger.extend('services:lnd');
 const warn: Debugger = log.extend('warn');
@@ -23,7 +24,7 @@ class LndService {
   /**
    * Starts connection ups and sets subscriptions up.
    */
-  constructor() {
+  constructor(private readonly outbox: Outbox) {
     this.grpc = new LndGrpc({
       lndconnectUri: requiredEnvVar('LNDCONNECT_URI'),
     });
@@ -100,7 +101,7 @@ class LndService {
       if (res.state === 'SETTLED') {
         const pubkey = await redis.getDel(res.r_hash);
         if (null !== pubkey) {
-          outbox.publish(
+          this.outbox.publish(
             lnInboundTx(res.amt_paid_msat, res.payment_request, pubkey),
           );
         }
@@ -109,6 +110,6 @@ class LndService {
   }
 }
 
-const lnd = new LndService();
+const lnd = new LndService(new OutboxService(getWriteNDK()));
 
 export default lnd;

@@ -11,7 +11,6 @@ import 'websocket-polyfill';
 
 import { logger } from './lib/utils';
 import { Context, ExtendedRequest } from '@type/request';
-import prisma from '@services/prisma';
 import { getReadNDK, getWriteNDK } from '@services/ndk';
 import { NDKRelay } from '@nostr-dev-kit/ndk';
 import { OutboxService } from '@services/outbox';
