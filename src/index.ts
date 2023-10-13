@@ -20,6 +20,7 @@ const port = process.env.PORT || 8000;
 const log: Debugger = logger.extend('index');
 const warn: Debugger = log.extend('warn');
 
+const writeNDK = getWriteNDK();
 const ctx: Context = { outbox: new OutboxService(getWriteNDK()) };
 
 // Instantiate ndk
@@ -47,7 +48,10 @@ readNDK.on('error', (err) => {
 // Connect to Nostr
 log('Connecting to Nostr...');
 readNDK.connect().catch((error) => {
-  warn('Error connecting to nostr: %o', error);
+  warn('Error connecting to read relay: %o', error);
+});
+writeNDK.connect().catch((error) => {
+  warn('Error connecting to write relay: %o', error);
 });
 
 // Generate routes
