@@ -78,7 +78,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
   }
 
   const invoice = await lnd.generateInvoice(amount);
-  redis.set(invoice.r_hash, pubkey, { NX: true });
+  redis.hSet(invoice.r_hash, 'pubkey', pubkey);
   res.status(200).json({ pr: invoice.payment_request, routes: [] }).send();
 };
 
