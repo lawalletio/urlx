@@ -1,7 +1,7 @@
 import { Debugger } from 'debug';
 import type { Response } from 'express';
 import type { ExtendedRequest } from '@type/request';
-import { nip19 } from 'nostr-tools';
+import { nip19, nip57 } from 'nostr-tools';
 
 import { logger } from '@lib/utils';
 import lnd from '@services/lnd';
@@ -54,12 +54,13 @@ function validateAmount(amount: any): bigint | null {
 }
 
 /**
- * Handles lud-06 callback requests
+ * Handles lud-06 and nip-57 callback requests
  *
  * Verifies that the query contains a non-zero positive amount and
  * generates and returns a lightning invoice for that amount.
  * Also stores a map between the invoice hash and the pubkey that will
- * receive the funds.
+ * receive the funds. If the query includes a zr query, treat it as a
+ * nip-57 zap request
  */
 const handler = async (req: ExtendedRequest, res: Response) => {
   const amount = validateAmount(req.query?.amount);
@@ -72,13 +73,24 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     debug('Invalid pubkey');
   }
 
+  const isNip57 = typeof req.query?.zr === 'string';
+  const zapRequest = isNip57 ? (req.query?.zr as string) : '';
+  if (isNip57) {
+    const err = nip57.validateZapRequest(zapRequest);
+    if (typeof err === 'string') {
+      debug('Invalid zap request: %s', err);
+      res.status(422).send();
+      return;
+    }
+  }
+
   if (null === amount || null === pubkey) {
     res.status(422).send();
     return;
   }
 
   const invoice = await lnd.generateInvoice(amount);
-  redis.hSet(invoice.r_hash, 'pubkey', pubkey);
+  redis.hSet(invoice.r_hash, { pubkey, zapRequest });
   res.status(200).json({ pr: invoice.payment_request, routes: [] }).send();
 };
 
