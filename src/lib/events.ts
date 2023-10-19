@@ -21,7 +21,6 @@ export function lnInboundTx(
     tokens: {
       bitcoin: amount,
     },
-    memo: invoice,
   };
   return {
     content: JSON.stringify(content),
@@ -32,6 +31,7 @@ export function lnInboundTx(
       ['p', requiredEnvVar('LEDGER_PUBLIC_KEY')],
       ['p', pubkey],
       ['t', 'inbound-transaction-start'],
+      ['bolt11', invoice],
     ],
   };
 }
