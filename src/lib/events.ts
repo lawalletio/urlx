@@ -19,7 +19,7 @@ export function lnInboundTx(
 ): NostrEvent {
   const content = {
     tokens: {
-      bitcoin: amount,
+      BTC: amount,
     },
   };
   return {
