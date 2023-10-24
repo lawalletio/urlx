@@ -17,6 +17,7 @@ const warn: Debugger = log.extend('warn');
 const debug: Debugger = log.extend('debug');
 
 const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
+const BITCOIN_TOKEN_NAME = 'BTC';
 
 const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
@@ -164,7 +165,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       isNaN(v) ? v : BigInt(v),
     );
 
-    if (content.tokens.bitcoin !== extractAmount(bolt11)) {
+    if (content.tokens[BITCOIN_TOKEN_NAME] !== extractAmount(bolt11)) {
       warn('Content amount and invoice amount are different');
       doRevertTx(ctx.outbox, startEvent);
       await markHandled(eventId);
