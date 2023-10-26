@@ -59,7 +59,7 @@ function validateAmount(amount: any): bigint | null {
  * Verifies that the query contains a non-zero positive amount and
  * generates and returns a lightning invoice for that amount.
  * Also stores a map between the invoice hash and the pubkey that will
- * receive the funds. If the query includes a zr query, treat it as a
+ * receive the funds. If the query includes a nostr query, treat it as a
  * nip-57 zap request
  */
 const handler = async (req: ExtendedRequest, res: Response) => {
@@ -73,8 +73,8 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     debug('Invalid pubkey');
   }
 
-  const isNip57 = typeof req.query?.zr === 'string';
-  const zapRequest = isNip57 ? (req.query?.zr as string) : '';
+  const isNip57 = typeof req.query?.nostr === 'string';
+  const zapRequest = isNip57 ? (req.query?.nostr as string) : '';
   if (isNip57) {
     const err = nip57.validateZapRequest(zapRequest);
     if (typeof err === 'string') {
