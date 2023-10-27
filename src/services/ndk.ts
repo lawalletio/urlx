@@ -92,7 +92,7 @@ export function connectToTempRelays(
       });
       relay.on('error', (e) => {
         warn('Could not publish to %s error: %O', url, e);
-      })
+      });
       tempRelay = { relay, timer };
       tempRelaysPool.set(url, tempRelay);
     }

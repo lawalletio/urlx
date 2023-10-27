@@ -49,10 +49,14 @@ class LNBitsService {
     this.connect().then(() => this.setUpSubscriptions());
   }
 
-  async generateInvoice(amount: number): Promise<CreateInvoice> {
+  async generateInvoice(amount: bigint): Promise<CreateInvoice> {
     await this.grpc.waitForState('active');
 
-    return this.wallet.createInvoice({ amount, memo: '', out: false });
+    return this.wallet.createInvoice({
+      amount: Math.floor(Number(amount / 1000n)),
+      memo: '',
+      out: false,
+    });
   }
 
   /**

@@ -38,11 +38,11 @@ function validatePubkey(pubkey: any): string | null {
  * Check if the given argument is a valid amount its bigint representation
  * if valid, null otherwise.
  */
-function validateAmount(amount: any): number | null {
+function validateAmount(amount: any): bigint | null {
   if (typeof amount === 'string') {
     let parsedAmount;
     try {
-      parsedAmount = Number(amount);
+      parsedAmount = BigInt(amount);
       if (0n <= parsedAmount) {
         return parsedAmount;
       }
