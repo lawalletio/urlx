@@ -55,6 +55,7 @@ class LndService {
       timeout_seconds: 5,
       no_inflight_updates: true,
       fee_limit_msat: 1001,
+      allow_self_payment: true,
     });
     return new Promise<void>((resolve, reject) => {
       call.on('data', (res: any) => {
