@@ -188,3 +188,12 @@ export const nowInSeconds = (): number => {
 export const isEmpty = (obj: object): boolean => {
   return 0 === Object.keys(obj).length;
 };
+
+export function shuffled<T>(array: Array<T>): Array<T> {
+  let result: Array<T> = Array.from(array);
+  for (let i = result.length - 1; 0 < i; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}

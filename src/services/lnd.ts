@@ -1,6 +1,6 @@
 import LndGrpc from 'lnd-grpc';
 import { AddInvoiceResponse, ILndGrpc } from '@type/lnd-grpc';
-import { logger, requiredEnvVar } from '@lib/utils';
+import { logger, requiredEnvVar, shuffled } from '@lib/utils';
 import { Debugger } from 'debug';
 import redis from '@services/redis';
 import { lnInboundTx } from '@lib/events';
@@ -115,9 +115,22 @@ class LndService {
               bolt11: res.payment_request,
               paidAt: new Date(),
             });
-            const relayUrls = JSON.parse(zapRequest)
-              .tags.find((t: string[]) => 'relays' === t[0])
-              .slice(1);
+            const defaultWriteRelay: string = requiredEnvVar(
+              'NOSTR_WRITE_RELAY',
+            )
+              .trim()
+              .toLowerCase();
+            const relayUrls = shuffled(
+              JSON.parse(zapRequest)
+                .tags.find((t: string[]) => 'relays' === t[0])
+                .slice(1)
+                .map((r: string) => {
+                  return r.trim();
+                })
+                .filter((r: string) => {
+                  return r.toLowerCase() !== defaultWriteRelay;
+                }),
+            ).slice(-5);
             const ndk = getSignerNDK();
             const relaySet = connectToTempRelays(relayUrls, ndk);
             new OutboxService(ndk)
