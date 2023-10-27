@@ -55,9 +55,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
       const relaySet = connectToTempRelays(relayUrls, ndk);
       new OutboxService(ndk)
         .publish(zapReceipt, relaySet)
-        .catch((e) =>
-          warn('Could not publish zapReceipt to external: %O', e),
-        );
+        .catch((e) => warn('Could not publish zapReceipt to external: %O', e));
       req.context.outbox.publish(zapReceipt).catch((e) => {
         error('Could not publish zapReceipt to internal: %O', e);
       });
