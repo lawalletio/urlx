@@ -4,7 +4,7 @@ import type { ExtendedRequest } from '@type/request';
 import { nip19, nip57 } from 'nostr-tools';
 
 import { logger } from '@lib/utils';
-import lnd from '@services/lnd';
+import lnbits from '@services/lnbits';
 import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
@@ -38,11 +38,11 @@ function validatePubkey(pubkey: any): string | null {
  * Check if the given argument is a valid amount its bigint representation
  * if valid, null otherwise.
  */
-function validateAmount(amount: any): bigint | null {
+function validateAmount(amount: any): number | null {
   if (typeof amount === 'string') {
     let parsedAmount;
     try {
-      parsedAmount = BigInt(amount);
+      parsedAmount = Number(amount);
       if (0n <= parsedAmount) {
         return parsedAmount;
       }
@@ -89,8 +89,8 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  const invoice = await lnd.generateInvoice(amount);
-  redis.hSet(invoice.r_hash, { pubkey, zapRequest });
+  const invoice = await lnbits.generateInvoice(amount);
+  redis.hSet(invoice.payment_hash, { pubkey, zapRequest });
   res.status(200).json({ pr: invoice.payment_request, routes: [] }).send();
 };
 

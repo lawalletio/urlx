@@ -1,6 +1,13 @@
+import LNBits from 'lnbits';
+import { LNBitsWalletClass } from 'lnbits/lib/wallet';
+
+import { logger, requiredEnvVar } from '@lib/utils';
+
+// @ts-ignore
 import LndGrpc from 'lnd-grpc';
-import { AddInvoiceResponse, ILndGrpc } from '@type/lnd-grpc';
-import { logger, requiredEnvVar, shuffled } from '@lib/utils';
+import { ILndGrpc } from '@type/lnd-grpc';
+
+import { shuffled } from '@lib/utils';
 import { Debugger } from 'debug';
 import redis from '@services/redis';
 import { lnInboundTx } from '@lib/events';
@@ -13,6 +20,8 @@ const log: Debugger = logger.extend('services:lnd');
 const warn: Debugger = log.extend('warn');
 const error: Debugger = log.extend('error');
 
+type CreateInvoice = ReturnType<LNBitsWalletClass['createInvoice']>;
+
 /**
  * Handles communication with LND.
  *
@@ -20,25 +29,30 @@ const error: Debugger = log.extend('error');
  * available methods for generating and paying invoices. Also includes
  * the subscriptions to received payments.
  */
-class LndService {
+class LNBitsService {
   private grpc: ILndGrpc;
+
+  private wallet: LNBitsWalletClass;
 
   /**
    * Starts connection ups and sets subscriptions up.
    */
   constructor(private readonly outbox: Outbox) {
+    this.wallet = LNBits({
+      adminKey: requiredEnvVar('LNBITS_ADMIN_KEY'),
+      invoiceReadKey: requiredEnvVar('LNBITS_INVOICE_READ_KEY'),
+      endpoint: requiredEnvVar('LNBITS_ENDPOINT'),
+    }).wallet;
     this.grpc = new LndGrpc({
       lndconnectUri: requiredEnvVar('LNDCONNECT_URI'),
     });
     this.connect().then(() => this.setUpSubscriptions());
   }
 
-  async generateInvoice(amount: bigint): Promise<AddInvoiceResponse> {
+  async generateInvoice(amount: number): Promise<CreateInvoice> {
     await this.grpc.waitForState('active');
-    const { Lightning } = this.grpc.services;
-    return Lightning.addInvoice({
-      value_msat: amount.toString(),
-    });
+
+    return this.wallet.createInvoice({ amount, memo: '', out: false });
   }
 
   /**
@@ -49,24 +63,8 @@ class LndService {
    */
   async payInvoice(invoice: string): Promise<void> {
     await this.grpc.waitForState('active');
-    const { Router } = this.grpc.services;
-    const call = Router.sendPaymentV2({
-      payment_request: invoice,
-      timeout_seconds: 5,
-      no_inflight_updates: true,
-      fee_limit_msat: 1001,
-      allow_self_payment: true,
-    });
-    return new Promise<void>((resolve, reject) => {
-      call.on('data', (res: any) => {
-        if ('SUCCEEDED' === res.status) {
-          resolve();
-        } else {
-          reject(res.failure_reason);
-        }
-      });
-      call.on('error', (e: Error) => reject(e));
-    });
+
+    this.wallet.payInvoice({ bolt11: invoice, out: true });
   }
 
   /**
@@ -155,6 +153,6 @@ class LndService {
   }
 }
 
-const lnd = new LndService(new OutboxService(getWriteNDK()));
+const lnbits = new LNBitsService(new OutboxService(getWriteNDK()));
 
-export default lnd;
+export default lnbits;

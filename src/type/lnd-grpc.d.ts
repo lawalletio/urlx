@@ -1,3 +1,5 @@
+declare module 'lnd-grpc';
+
 export interface AddInvoiceResponse {
   r_hash: Buffer;
   payment_request: string;
