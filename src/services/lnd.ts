@@ -120,7 +120,7 @@ class LndService {
             )
               .trim()
               .toLowerCase();
-            const relayUrls = shuffled(
+            const relayUrls = shuffled<string>(
               JSON.parse(zapRequest)
                 .tags.find((t: string[]) => 'relays' === t[0])
                 .slice(1)
