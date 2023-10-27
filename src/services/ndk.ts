@@ -87,9 +87,12 @@ export function connectToTempRelays(
         warn('Error connecting to relay %s: %O', url, e);
         removeTempRelay(url);
       });
-      relay.on('connect', () =>
-        log('Connected to %s for %d ms', url, INACTIVE_TIMEOUT),
-      );
+      relay.on('connect', () => {
+        log('Connected to %s for %d ms', url, INACTIVE_TIMEOUT);
+      });
+      relay.on('error', (e) => {
+        warn('Could not publish to %s error: %O', url, e);
+      })
       tempRelay = { relay, timer };
       tempRelaysPool.set(url, tempRelay);
     }
