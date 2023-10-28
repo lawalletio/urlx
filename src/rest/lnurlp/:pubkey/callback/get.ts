@@ -66,14 +66,25 @@ function validateAmount(amount: any): bigint | null {
  * nip-57 zap request
  */
 const handler = async (req: ExtendedRequest, res: Response) => {
-  const amount = validateAmount(req.query?.amount);
+  const amount: bigint | null = validateAmount(req.query?.amount);
   if (amount === null) {
     debug('Invalid amount');
+    res.status(422).send();
+    return;
+  }
+
+  const comment = req.query?.comment?.toString() ?? '';
+  if (255 < comment.length) {
+    debug('Comment too long');
+    res.status(422).send();
+    return;
   }
 
   const pubkey = validatePubkey(req.params?.pubkey);
   if (pubkey === null) {
     debug('Invalid pubkey');
+    res.status(422).send();
+    return;
   }
 
   const isNip57 = typeof req.query?.nostr === 'string';
@@ -87,14 +98,9 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     }
   }
 
-  if (null === amount || null === pubkey) {
-    res.status(422).send();
-    return;
-  }
-
   let pr: string | null;
   try {
-    pr = await lnbits.generateInvoice(amount);
+    pr = await lnbits.generateInvoice(amount, comment);
   } catch (e) {
     pr = null;
     error('Error generating invoice: %O', e);

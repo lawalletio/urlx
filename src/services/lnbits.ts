@@ -28,9 +28,16 @@ class LNBitsService {
     }).wallet;
   }
 
-  async generateInvoice(amount: bigint): Promise<string | null> {
-    const body: string =
-      (await httpsRequest(`${lnurlpUri}?amount=${amount}`)) ?? '';
+  async generateInvoice(
+    amount: bigint,
+    comment: string | null,
+  ): Promise<string | null> {
+    let url: URL = new URL(lnurlpUri);
+    url.searchParams.append('amount', amount.toString());
+    if (null !== comment) {
+      url.searchParams.append('comment', comment);
+    }
+    const body: string = (await httpsRequest(url)) ?? '';
     return jsonParseOrNull(body)?.pr ?? null;
   }
 
