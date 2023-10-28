@@ -138,7 +138,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     }
 
     // originated by me
-    if (requiredEnvVar('NOSTR_PUBLIC_KEY') !== target) {
+    if (requiredEnvVar('NOSTR_PUBLIC_KEY') === target) {
       return;
     }
 
