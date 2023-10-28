@@ -3,7 +3,7 @@ import type { Response } from 'express';
 import type { ExtendedRequest } from '@type/request';
 import { Debugger } from 'debug';
 import {
-  httpsRequest,
+  httpRequest,
   jsonParseOrNull,
   logger,
   requiredEnvVar,
@@ -31,7 +31,7 @@ const getWriteRelayHostname = async (): Promise<string> => {
     url.protocol = 'http';
     writeRelayHostname = new URL(
       jsonParseOrNull(
-        (await httpsRequest(url, {
+        (await httpRequest(url, {
           headers: { Accept: 'application/nostr+json' },
         })) ?? '',
       )?.payments_url ?? 'https://example.com',
