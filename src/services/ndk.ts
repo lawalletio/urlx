@@ -52,6 +52,8 @@ export function getWriteNDK(): NDK {
 export function getSignerNDK(): NDK {
   return new NDK({
     signer: new NDKPrivateKeySigner(process.env.NOSTR_PRIVATE_KEY),
+  }).on('error', (e) => {
+    warn('Unexpected error from ndk: %O', e);
   });
 }
 
@@ -92,6 +94,9 @@ export function connectToTempRelays(
       });
       relay.on('error', (e) => {
         warn('Could not publish to %s error: %O', url, e);
+      });
+      relay.on('publish:failed', (event, err) => {
+        warn('Could not publish to %s event %s error: %O', url, event.id, err);
       });
       tempRelay = { relay, timer };
       tempRelaysPool.set(url, tempRelay);
