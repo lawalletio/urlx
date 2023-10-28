@@ -5,6 +5,8 @@ import NDK, { NostrEvent } from '@nostr-dev-kit/ndk';
 
 import Path from 'path';
 import { Context } from '@type/request';
+import { RequestOptions, request } from 'https';
+import { IncomingMessage } from 'http';
 
 type RouteMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
@@ -208,3 +210,37 @@ export function shuffled<T>(array: Array<T>): Array<T> {
   }
   return result;
 }
+
+export const httpsRequest = async (
+  url: string | URL,
+  options?: RequestOptions,
+): Promise<string | null> => {
+  return new Promise(
+    (resolve: (b: string) => void, reject: (e: Error) => void) => {
+      request(url, options ?? {}, (res: IncomingMessage) => {
+        let bodyChunks: Uint8Array[] = [];
+        res
+          .on('data', (chunk: Uint8Array) => {
+            bodyChunks.push(chunk);
+          })
+          .on('end', () => {
+            resolve(Buffer.concat(bodyChunks).toString());
+          })
+          .on('error', (e: Error) => {
+            reject(e);
+          });
+      }).end();
+    },
+  );
+};
+
+export const jsonParseOrNull = (
+  text: string,
+  reviver?: (this: any, key: string, value: any) => any,
+): any => {
+  try {
+    return JSON.parse(text, reviver);
+  } catch (e) {
+    return null;
+  }
+};

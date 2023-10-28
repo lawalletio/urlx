@@ -2,7 +2,13 @@ import type { Response } from 'express';
 
 import type { ExtendedRequest } from '@type/request';
 import { Debugger } from 'debug';
-import { logger, requiredEnvVar, shuffled } from '@lib/utils';
+import {
+  httpsRequest,
+  jsonParseOrNull,
+  logger,
+  requiredEnvVar,
+  shuffled,
+} from '@lib/utils';
 import redis from '@services/redis';
 import { commandOptions } from 'redis';
 import { nip57 } from 'nostr-tools';
@@ -10,11 +16,27 @@ import { connectToTempRelays, getSignerNDK } from '@services/ndk';
 import { OutboxService } from '@services/outbox';
 import { lnInboundTx } from '@lib/events';
 import { createHash } from 'crypto';
+import { URL } from 'url';
 
 const log: Debugger = logger.extend('rest:invoice:settlement:post');
 const warn: Debugger = log.extend('warn');
 const error: Debugger = log.extend('error');
 const debug: Debugger = log.extend('debug');
+
+var writeRelayHostname: string | null = null;
+
+const getWriteRelayHostname = async (): Promise<string> => {
+  if (null === writeRelayHostname) {
+    writeRelayHostname = new URL(
+      jsonParseOrNull(
+        (await httpsRequest(requiredEnvVar('NOSTR_WRITE_RELAY'), {
+          headers: { Accept: 'application/nostr+json' },
+        })) ?? '',
+      )?.payments_url ?? 'https://example.com',
+    ).hostname;
+  }
+  return writeRelayHostname;
+};
 
 type LnbitsInvoice = {
   payment_hash: string;
@@ -71,18 +93,17 @@ const handler = async (req: ExtendedRequest, res: Response) => {
       bolt11: invoice.payment_request,
       paidAt: new Date(),
     });
-    const defaultWriteRelay: string = requiredEnvVar('NOSTR_WRITE_RELAY')
-      .trim()
-      .toLowerCase();
+    const theWriteRelayHostname: string = await getWriteRelayHostname();
     const relayUrls = shuffled<string>(
       JSON.parse(zapRequest)
         .tags.find((t: string[]) => 'relays' === t[0])
         .slice(1)
-        .map((r: string) => {
-          return r.trim();
-        })
         .filter((r: string) => {
-          return r.toLowerCase() !== defaultWriteRelay;
+          try {
+            return new URL(r).hostname !== theWriteRelayHostname;
+          } catch (e) {
+            return false;
+          }
         }),
     ).slice(-5);
     const ndk = getSignerNDK();

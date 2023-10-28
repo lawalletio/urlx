@@ -1,10 +1,7 @@
 import LNBits from 'lnbits';
 import { LNBitsWalletClass } from 'lnbits/lib/wallet';
 
-import { requiredEnvVar } from '@lib/utils';
-
-import { get } from 'https';
-import { IncomingMessage } from 'http';
+import { requiredEnvVar, httpsRequest, jsonParseOrNull } from '@lib/utils';
 
 import { Outbox, OutboxService } from '@services/outbox';
 import { getWriteNDK } from '@services/ndk';
@@ -30,24 +27,9 @@ class LNBitsService {
   }
 
   async generateInvoice(amount: bigint): Promise<string | null> {
-    var invoice: string | null = '';
-    return new Promise((resolve, reject) => {
-      get(`${lnurlpUri}?amount=${amount}`, (res: IncomingMessage) => {
-        var bodyChunks: Uint8Array[] = [];
-        res
-          .on('data', (chunk: Uint8Array) => {
-            bodyChunks.push(chunk);
-          })
-          .on('end', () => {
-            invoice =
-              JSON.parse(Buffer.concat(bodyChunks).toString())?.pr ?? null;
-            resolve(invoice);
-          })
-          .on('error', (e) => {
-            reject(e);
-          });
-      });
-    });
+    const body: string =
+      (await httpsRequest(`${lnurlpUri}?amount=${amount}`)) ?? '';
+    return jsonParseOrNull(body)?.pr ?? null;
   }
 
   /**
