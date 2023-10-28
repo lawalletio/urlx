@@ -8,6 +8,8 @@ import { getWriteNDK } from '@services/ndk';
 
 const lnurlpUri: string = requiredEnvVar('LNURLP_URI');
 
+type PayInvoicePromise = ReturnType<LNBitsWalletClass['payInvoice']>;
+
 /**
  * Handles communication with LNBits.
  *
@@ -38,8 +40,8 @@ class LNBitsService {
    * Tries to pay an invoice, return a void promise that resolves on
    * success and fails otherwise with reason.
    */
-  async payInvoice(invoice: string): Promise<void> {
-    this.wallet.payInvoice({ bolt11: invoice, out: true });
+  async payInvoice(invoice: string): PayInvoicePromise {
+    return this.wallet.payInvoice({ bolt11: invoice, out: true });
   }
 }
 
