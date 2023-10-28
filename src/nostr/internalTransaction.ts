@@ -43,7 +43,7 @@ function extractAmount(invoice: string): bigint | null {
     try {
       return BigInt(
         parseInt(matches.groups.amount) *
-          multipliers[matches.groups.multiplier],
+          multipliers[matches.groups.multiplier.toLowerCase()],
       );
     } catch {
       debug('Unparsable invoice amount');
