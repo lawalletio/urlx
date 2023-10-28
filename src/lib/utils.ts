@@ -5,8 +5,16 @@ import NDK, { NostrEvent } from '@nostr-dev-kit/ndk';
 
 import Path from 'path';
 import { Context } from '@type/request';
-import { RequestOptions, request } from 'https';
-import { IncomingMessage } from 'http';
+
+import {
+  RequestOptions as requestOptionsHttps,
+  request as requestHttps,
+} from 'https';
+import {
+  IncomingMessage,
+  RequestOptions as requestOptionsHttp,
+  request as requestHttp,
+} from 'http';
 
 type RouteMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
@@ -213,10 +221,31 @@ export function shuffled<T>(array: Array<T>): Array<T> {
 
 export const httpsRequest = async (
   url: string | URL,
-  options?: RequestOptions,
+  options?: requestOptionsHttps,
 ): Promise<string | null> => {
   return new Promise((resolve: (b: string | null) => void) => {
-    request(url, options ?? {}, (res: IncomingMessage) => {
+    requestHttps(url, options ?? {}, (res: IncomingMessage) => {
+      let bodyChunks: Uint8Array[] = [];
+      res
+        .on('data', (chunk: Uint8Array) => {
+          bodyChunks.push(chunk);
+        })
+        .on('end', () => {
+          resolve(Buffer.concat(bodyChunks).toString());
+        })
+        .on('error', () => {
+          resolve(null);
+        });
+    }).end();
+  });
+};
+
+export const httpRequest = async (
+  url: string | URL,
+  options?: requestOptionsHttp,
+): Promise<string | null> => {
+  return new Promise((resolve: (b: string | null) => void) => {
+    requestHttp(url, options ?? {}, (res: IncomingMessage) => {
       let bodyChunks: Uint8Array[] = [];
       res
         .on('data', (chunk: Uint8Array) => {
