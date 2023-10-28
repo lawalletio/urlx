@@ -91,7 +91,11 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  const pr = await lnbits.generateInvoice(amount);
+  const pr: string | null = await lnbits.generateInvoice(amount);
+  if (null === pr) {
+    res.status(500).send();
+    return;
+  }
 
   redis.hSet(createHash('sha256').update(pr).digest('hex'), {
     pubkey,

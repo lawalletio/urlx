@@ -3,6 +3,8 @@ import { LNBitsWalletClass } from 'lnbits/lib/wallet';
 
 import { requiredEnvVar } from '@lib/utils';
 
+import { IncomingMessage, get } from 'http';
+
 import { Outbox, OutboxService } from '@services/outbox';
 import { getWriteNDK } from '@services/ndk';
 
@@ -26,11 +28,20 @@ class LNBitsService {
     }).wallet;
   }
 
-  async generateInvoice(amount: bigint): Promise<string> {
-    // 1. pegarle a una url de ENV
-    // 2. extraer el "pr" de esa url
-    // 3. retornar ese "pr"
-    return `${lnurlpUri}?amount=${amount}`;
+  async generateInvoice(amount: bigint): Promise<string | null> {
+    var invoice: string | null = '';
+    get(`${lnurlpUri}?amount=${amount}`, (res: IncomingMessage) => {
+      var bodyChunks: Uint8Array[] = [];
+      res
+        .on('data', (chunk: Uint8Array) => {
+          bodyChunks.push(chunk);
+        })
+        .on('end', () => {
+          invoice =
+            JSON.parse(Buffer.concat(bodyChunks).toString())?.pr ?? null;
+        });
+    });
+    return invoice;
   }
 
   /**
