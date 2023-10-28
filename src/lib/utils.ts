@@ -215,23 +215,21 @@ export const httpsRequest = async (
   url: string | URL,
   options?: RequestOptions,
 ): Promise<string | null> => {
-  return new Promise(
-    (resolve: (b: string) => void, reject: (e: Error) => void) => {
-      request(url, options ?? {}, (res: IncomingMessage) => {
-        let bodyChunks: Uint8Array[] = [];
-        res
-          .on('data', (chunk: Uint8Array) => {
-            bodyChunks.push(chunk);
-          })
-          .on('end', () => {
-            resolve(Buffer.concat(bodyChunks).toString());
-          })
-          .on('error', (e: Error) => {
-            reject(e);
-          });
-      }).end();
-    },
-  );
+  return new Promise((resolve: (b: string | null) => void) => {
+    request(url, options ?? {}, (res: IncomingMessage) => {
+      let bodyChunks: Uint8Array[] = [];
+      res
+        .on('data', (chunk: Uint8Array) => {
+          bodyChunks.push(chunk);
+        })
+        .on('end', () => {
+          resolve(Buffer.concat(bodyChunks).toString());
+        })
+        .on('error', () => {
+          resolve(null);
+        });
+    }).end();
+  });
 };
 
 export const jsonParseOrNull = (

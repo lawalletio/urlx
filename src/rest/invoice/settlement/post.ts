@@ -28,7 +28,7 @@ var writeRelayHostname: string | null = null;
 const getWriteRelayHostname = async (): Promise<string> => {
   if (null === writeRelayHostname) {
     let url = new URL(requiredEnvVar('NOSTR_WRITE_RELAY'));
-    url.protocol = 'https';
+    url.protocol = 'http';
     writeRelayHostname = new URL(
       jsonParseOrNull(
         (await httpsRequest(url, {
