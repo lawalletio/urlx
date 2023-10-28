@@ -3,7 +3,8 @@ import { LNBitsWalletClass } from 'lnbits/lib/wallet';
 
 import { requiredEnvVar } from '@lib/utils';
 
-import { IncomingMessage, get } from 'http';
+import { get } from 'https';
+import { IncomingMessage } from 'http';
 
 import { Outbox, OutboxService } from '@services/outbox';
 import { getWriteNDK } from '@services/ndk';
