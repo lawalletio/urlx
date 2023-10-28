@@ -23,7 +23,9 @@ export function lnInboundTx(
     },
   };
   return {
-    content: JSON.stringify(content),
+    content: JSON.stringify(content, (_, v) =>
+      typeof v === 'bigint' ? v.toString() : v,
+    ),
     created_at: nowInSeconds(),
     kind: Kind.REGULAR.valueOf(),
     pubkey: requiredEnvVar('NOSTR_PUBLIC_KEY'),
@@ -69,7 +71,9 @@ export function revertTx(event: NDKEvent): NostrEvent {
   }
 
   return {
-    content: JSON.stringify(content),
+    content: JSON.stringify(content, (_, v) =>
+      typeof v === 'bigint' ? v.toString() : v,
+    ),
     created_at: nowInSeconds(),
     kind: Kind.REGULAR.valueOf(),
     pubkey: requiredEnvVar('NOSTR_PUBLIC_KEY'),
