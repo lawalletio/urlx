@@ -11,6 +11,7 @@ import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
 const debug: Debugger = log.extend('debug');
+const error: Debugger = log.extend('error');
 
 /**
  * Extract a valid pubkey from the given argument
@@ -91,7 +92,13 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  const pr: string | null = await lnbits.generateInvoice(amount);
+  let pr: string | null;
+  try {
+    pr = await lnbits.generateInvoice(amount);
+  } catch (e) {
+    pr = null;
+    error('Error generating invoice: %O', e);
+  }
   if (null === pr) {
     res.status(500).send();
     return;

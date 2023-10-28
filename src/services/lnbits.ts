@@ -31,18 +31,23 @@ class LNBitsService {
 
   async generateInvoice(amount: bigint): Promise<string | null> {
     var invoice: string | null = '';
-    get(`${lnurlpUri}?amount=${amount}`, (res: IncomingMessage) => {
-      var bodyChunks: Uint8Array[] = [];
-      res
-        .on('data', (chunk: Uint8Array) => {
-          bodyChunks.push(chunk);
-        })
-        .on('end', () => {
-          invoice =
-            JSON.parse(Buffer.concat(bodyChunks).toString())?.pr ?? null;
-        });
+    return new Promise((resolve, reject) => {
+      get(`${lnurlpUri}?amount=${amount}`, (res: IncomingMessage) => {
+        var bodyChunks: Uint8Array[] = [];
+        res
+          .on('data', (chunk: Uint8Array) => {
+            bodyChunks.push(chunk);
+          })
+          .on('end', () => {
+            invoice =
+              JSON.parse(Buffer.concat(bodyChunks).toString())?.pr ?? null;
+            resolve(invoice);
+          })
+          .on('error', (e) => {
+            reject(e);
+          });
+      });
     });
-    return invoice;
   }
 
   /**
