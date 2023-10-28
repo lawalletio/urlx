@@ -3,8 +3,10 @@ import type { Response } from 'express';
 import type { ExtendedRequest } from '@type/request';
 import { nip19, nip57 } from 'nostr-tools';
 
+import { createHash } from 'crypto';
+
 import { logger } from '@lib/utils';
-import lnd from '@services/lnd';
+import lnbits from '@services/lnbits';
 import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
@@ -89,9 +91,13 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  const invoice = await lnd.generateInvoice(amount);
-  redis.hSet(invoice.r_hash, { pubkey, zapRequest });
-  res.status(200).json({ pr: invoice.payment_request, routes: [] }).send();
+  const pr = await lnbits.generateInvoice(amount);
+
+  redis.hSet(createHash('sha256').update(pr).digest('hex'), {
+    pubkey,
+    zapRequest,
+  });
+  res.status(200).json({ pr, routes: [] }).send();
 };
 
 export default handler;

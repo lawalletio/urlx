@@ -5,7 +5,7 @@ import type { NDKEvent, NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
 import { Kind, lnOutboundTx, revertTx } from '@lib/events';
 import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
 
-import lnd from '@services/lnd';
+import lnbits from '@services/lnbits';
 import redis from '@services/redis';
 import { Context } from '@type/request';
 import { Outbox } from '@services/outbox';
@@ -172,7 +172,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
-    lnd
+    lnbits
       .payInvoice(bolt11)
       .then(() => {
         log('Paid invoice for: %O', startEvent.id);
