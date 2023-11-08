@@ -1,7 +1,13 @@
 import LNBits from 'lnbits';
 import { LNBitsWalletClass } from 'lnbits/lib/wallet';
 
-import { requiredEnvVar, httpsRequest, jsonParseOrNull } from '@lib/utils';
+import {
+  requiredEnvVar,
+  httpsRequest,
+  jsonParseOrNull,
+  httpRequest,
+  requiredProp,
+} from '@lib/utils';
 
 import { Outbox, OutboxService } from '@services/outbox';
 import { getWriteNDK } from '@services/ndk';
@@ -9,6 +15,12 @@ import { getWriteNDK } from '@services/ndk';
 const lnurlpUri: string = requiredEnvVar('LNURLP_URI');
 
 type PayInvoicePromise = ReturnType<LNBitsWalletClass['payInvoice']>;
+
+type Requester = (url: URL) => Promise<string | null>;
+const requesterByProtocol: Record<string, Requester> = {
+  'http:': httpRequest,
+  'https:': httpsRequest,
+};
 
 /**
  * Handles communication with LNBits.
@@ -37,7 +49,11 @@ class LNBitsService {
     if (null !== comment) {
       url.searchParams.append('comment', comment);
     }
-    const body: string = (await httpsRequest(url)) ?? '';
+    const request: Requester = requiredProp<Requester>(
+      requesterByProtocol,
+      url.protocol,
+    );
+    const body: string = (await request(url)) ?? '';
     return jsonParseOrNull(body)?.pr ?? null;
   }
 
