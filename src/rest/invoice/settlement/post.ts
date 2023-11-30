@@ -17,6 +17,7 @@ import { OutboxService } from '@services/outbox';
 import { lnInboundTx } from '@lib/events';
 import { createHash } from 'crypto';
 import { URL } from 'url';
+import { NostrEvent } from '@nostr-dev-kit/ndk';
 
 const log: Debugger = logger.extend('rest:invoice:settlement:post');
 const warn: Debugger = log.extend('warn');
@@ -112,9 +113,9 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     const ndk = getSignerNDK();
     const relaySet = connectToTempRelays(relayUrls, ndk);
     new OutboxService(ndk)
-      .publish(zapReceipt, relaySet)
+      .publish(zapReceipt as NostrEvent, relaySet)
       .catch((e) => warn('Could not publish zapReceipt to external: %O', e));
-    req.context.outbox.publish(zapReceipt).catch((e) => {
+    req.context.outbox.publish(zapReceipt as NostrEvent).catch((e) => {
       error('Could not publish zapReceipt to internal: %O', e);
     });
   }
