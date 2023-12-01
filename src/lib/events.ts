@@ -1,6 +1,5 @@
 import { NDKEvent, NostrEvent } from '@nostr-dev-kit/ndk';
 import { nip26, Event } from 'nostr-tools';
-import { decode } from 'bolt11';
 
 import { nowInSeconds, requiredEnvVar } from '@lib/utils';
 
@@ -17,6 +16,7 @@ export function lnInboundTx(
   amount: bigint,
   invoice: string,
   pubkey: string,
+  comment?: string,
 ): NostrEvent {
   const content = {
     ...{
@@ -24,9 +24,7 @@ export function lnInboundTx(
         BTC: amount,
       },
     },
-    ...(decode(invoice).tagsObject?.description
-      ? { memo: decode(invoice).tagsObject?.description }
-      : {}),
+    ...(comment ? { memo: comment } : {}),
   };
   return {
     content: JSON.stringify(content, (_, v) =>

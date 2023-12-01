@@ -113,6 +113,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
   redis.hSet(createHash('sha256').update(pr).digest('hex'), {
     pubkey,
     zapRequest,
+    comment,
   });
   res.status(200).json({ pr, routes: [] }).send();
 };
