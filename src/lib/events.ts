@@ -19,10 +19,14 @@ export function lnInboundTx(
   pubkey: string,
 ): NostrEvent {
   const content = {
-    tokens: {
-      BTC: amount,
+    ...{
+      tokens: {
+        BTC: amount,
+      },
     },
-    memo: decode(invoice).tagsObject?.description ?? '',
+    ...(decode(invoice).tagsObject?.description
+      ? { memo: decode(invoice).tagsObject?.description }
+      : {}),
   };
   return {
     content: JSON.stringify(content, (_, v) =>
