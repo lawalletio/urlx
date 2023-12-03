@@ -114,6 +114,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     pubkey,
     zapRequest,
     comment,
+    handled: 'false',
   });
   res.status(200).json({ pr, routes: [] }).send();
 };
