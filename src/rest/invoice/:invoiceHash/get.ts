@@ -19,7 +19,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     res.status(422).send();
     return;
   }
-  if (!/^[0-9a-f]$/i.test(invoiceHash)) {
+  if (!/^[0-9a-f]+$/i.test(invoiceHash)) {
     debug('Malformed invoice hash');
     res.status(422).send();
     return;
