@@ -11,8 +11,8 @@
     "import": "./dist/index.js",
     "node": "./dist/index.mjs"
   },
-  "scripts": {
-    "test": "jest --coverage",
+      "scripts": {
+    "test": "jest",
     "test:watch": "jest --watch",
     "dev": "concurrently \"pnpm run build:watch\" \"pnpm run dev:watch\"",
     "dev:watch": "nodemon --watch \"dist/**/*\" -w .env -r dotenv/config -e js ./dist/index.js",
