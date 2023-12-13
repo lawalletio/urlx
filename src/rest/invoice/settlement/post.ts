@@ -137,7 +137,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
       lnInboundTx(
         BigInt(invoice.amount),
         invoice.payment_request,
-        pubkey,
+        requiredEnvVar('NOSTR_PUBLIC_KEY'),
         comment,
       ),
     )
