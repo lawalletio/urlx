@@ -1,5 +1,4 @@
 import NDK, { NostrEvent } from '@nostr-dev-kit/ndk';
-import { getHandler } from '@nostr/inboundTransaction';
 import { getReadNDK } from '@services/ndk';
 import redis from '@services/redis';
 import { Context } from '@type/request';
@@ -8,6 +7,10 @@ const URLX_PUBKEY =
   '54dcdeb9685a9acc900fe09b53dddb0103a58924df2b4e6144daaa301261acd4';
 const LEDGER_PUBKEY =
   'c07b4bee4ae6604d76e1ff5ce6019364d3d8f21256d1f6033b568638f009be6c';
+process.env.NOSTR_PUBLIC_KEY = URLX_PUBKEY;
+process.env.LEDGER_PUBLIC_KEY = LEDGER_PUBKEY;
+// the keys must exist before importing the handler
+import { getHandler } from '@nostr/inboundTransaction';
 
 jest.mock('@services/redis', () => {
   return {
@@ -25,8 +28,6 @@ jest.mock('@services/ndk', () => {
     getReadNDK: jest.fn(),
   };
 });
-process.env.NOSTR_PUBLIC_KEY = URLX_PUBKEY;
-process.env.LEDGER_PUBLIC_KEY = LEDGER_PUBKEY;
 
 describe('inboundTransaction handler', () => {
   const ctx: Context = {
