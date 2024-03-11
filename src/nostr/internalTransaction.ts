@@ -12,6 +12,10 @@ import { Outbox } from '@services/outbox';
 import { getReadNDK } from '@services/ndk';
 import { nip04 } from 'nostr-tools';
 
+import * as crypto from 'node:crypto';
+// @ts-ignore
+globalThis.crypto = crypto;
+
 const log: Debugger = logger.extend('nostr:internalTransaction');
 
 const warn: Debugger = log.extend('warn');
@@ -178,12 +182,12 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       .payInvoice(bolt11)
       .then(async (res: { payment_hash: string }) => {
         log('Paid invoice for: %O', startEvent.id);
-        let check: {preimage:string} | undefined;
+        let check: { preimage: string } | undefined;
         try {
           check = await lnbits.checkInvoice(res.payment_hash);
         } catch (err) {
-            warn('NO INVOICE PREIMAGE');
-            log(err);
+          warn('NO INVOICE PREIMAGE');
+          log(err);
         }
         const outboundEvent = lnOutboundTx(startEvent);
         outboundEvent.tags.push([
