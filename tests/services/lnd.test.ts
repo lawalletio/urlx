@@ -80,4 +80,13 @@ describe('lnd service', () => {
       expect.objectContaining({ payment_request: pr }),
     );
   });
+  it('should reject on failed payment', async () => {
+    lndGrcpMock.services.Router.sendPaymentV2.mockReturnValue({
+      on: jest.fn((event, callback) => {
+        callback({ status: 'FAILED', failure_reason: 'FAILURE_REASON_ERROR' });
+      }),
+    });
+
+    await expect(lnd.payInvoice(pr)).rejects.toBe('FAILURE_REASON_ERROR');
+  });
 });

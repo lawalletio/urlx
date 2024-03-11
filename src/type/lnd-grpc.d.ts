@@ -19,6 +19,28 @@ declare interface Invoice {
   value_msat: string;
 }
 
+declare enum PaymentStatus {
+  IN_FLIGHT = 'IN_FLIGHT',
+  SUCCEEDED = 'SUCCEEDED',
+  FAILED = 'FAILED',
+  INITIATED = 'INITIATED',
+}
+
+declare enum PaymentFailureReason {
+  FAILURE_REASON_NONE = 'FAILURE_REASON_NONE',
+  FAILURE_REASON_TIMEOUT = 'FAILURE_REASON_TIMEOUT',
+  FAILURE_REASON_NO_ROUTE = 'FAILURE_REASON_NO_ROUTE',
+  FAILURE_REASON_ERROR = 'FAILURE_REASON_ERROR',
+  FAILURE_REASON_INCORRECT_PAYMENT_DETAILS = 'FAILURE_REASON_INCORRECT_PAYMENT_DETAILS',
+  FAILURE_REASON_INSUFFICIENT_BALANCE = 'FAILURE_REASON_INSUFFICIENT_BALANCE',
+}
+
+declare interface Payment {
+  failure_reason: keyof typeof PaymentFailureReason;
+  status: keyof typeof PaymentStatus;
+  payment_preimage: string;
+}
+
 declare interface LightningService {
   addInvoice(invoice: AddInvoiceRequest): Promise<AddInvoiceResponse>;
   subscribeInvoices(any): EventEmitter;

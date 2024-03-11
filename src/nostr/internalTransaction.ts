@@ -223,26 +223,19 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
 
     ctx.lnd
       .payInvoice(bolt11)
-      .then(async (res: { payment_hash: string }) => {
+      .then(async (payment: Payment) => {
         await redis.hSet(prHash, 'paid', 'true');
         log('Paid invoice for: %O', startEvent.id);
-        let check: { preimage: string } | undefined;
-        try {
-          check = await lnbits.checkInvoice(res.payment_hash);
-        } catch (err) {
-          warn('NO INVOICE PREIMAGE');
-          log(err);
-        }
         const outboundEvent = lnOutboundTx(startEvent);
         outboundEvent.tags.push([
           'preimage',
           await nip04.encrypt(
             requiredEnvVar('NOSTR_PRIVATE_KEY'),
             target,
-            check?.preimage ?? '',
+            payment.payment_preimage,
           ),
         ]);
-        await ctx.outbox.publish(outboundEvent);
+        ctx.outbox.publish(outboundEvent);
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);
