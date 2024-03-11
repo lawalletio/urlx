@@ -10,6 +10,7 @@ import redis from '@services/redis';
 import { Context } from '@type/request';
 import { Outbox } from '@services/outbox';
 import { getReadNDK } from '@services/ndk';
+import { nip04 } from 'nostr-tools';
 
 const log: Debugger = logger.extend('nostr:internalTransaction');
 
@@ -173,10 +174,27 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     }
 
     lnbits
+
       .payInvoice(bolt11)
-      .then(() => {
+      .then(async (res: { payment_hash: string }) => {
         log('Paid invoice for: %O', startEvent.id);
-        ctx.outbox.publish(lnOutboundTx(startEvent));
+        let check: {preimage:string} | undefined;
+        try {
+          check = await lnbits.checkInvoice(res.payment_hash);
+        } catch (err) {
+            warn('NO INVOICE PREIMAGE');
+            log(err);
+        }
+        const outboundEvent = lnOutboundTx(startEvent);
+        outboundEvent.tags.push([
+          'preimage',
+          await nip04.encrypt(
+            requiredEnvVar('NOSTR_PRIVATE_KEY'),
+            target,
+            check?.preimage ?? '',
+          ),
+        ]);
+        ctx.outbox.publish(outboundEvent);
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);

@@ -66,6 +66,12 @@ class LNBitsService {
   async payInvoice(invoice: string): PayInvoicePromise {
     return this.wallet.payInvoice({ bolt11: invoice, out: true });
   }
+
+  async checkInvoice(payment_hash: string): Promise<{ preimage: string }> {
+    return (await this.wallet.checkInvoice({ payment_hash })) as unknown as {
+      preimage: string;
+    };
+  }
 }
 
 const lnbits = new LNBitsService(new OutboxService(getWriteNDK()));
