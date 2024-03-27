@@ -7,6 +7,7 @@ import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
 
 import lnbits from '@services/lnbits';
 import redis from '@services/redis';
+import { decode } from 'bolt11';
 import { Context } from '@type/request';
 import { Outbox } from '@services/outbox';
 import { getReadNDK } from '@services/ndk';
@@ -177,8 +178,28 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
-    lnbits
+    const paymentHash = decode(bolt11).tagsObject.payment_hash;
+    if (paymentHash) {
+      try {
+        const check = await lnbits.checkInvoice(paymentHash);
+        if (check.preimage) {
+          const outboundEvent = lnOutboundTx(startEvent);
+          outboundEvent.tags.push([
+            'preimage',
+            await nip04.encrypt(
+              requiredEnvVar('NOSTR_PRIVATE_KEY'),
+              target,
+              check.preimage,
+            ),
+          ]);
+          await ctx.outbox.publish(outboundEvent);
+          await markHandled(eventId);
+          return;
+        }
+      } catch (err) {}
+    }
 
+    lnbits
       .payInvoice(bolt11)
       .then(async (res: { payment_hash: string }) => {
         log('Paid invoice for: %O', startEvent.id);
@@ -198,7 +219,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
             check?.preimage ?? '',
           ),
         ]);
-        ctx.outbox.publish(outboundEvent);
+        await ctx.outbox.publish(outboundEvent);
       })
       .catch((error) => {
         warn('Failed paying invoice, reverting transaction: %O', error);
