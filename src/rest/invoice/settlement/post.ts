@@ -124,7 +124,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
         }),
     ).slice(-5);
     const ndk = getSignerNDK();
-    const relaySet = connectToTempRelays(relayUrls, ndk);
+    const relaySet = await connectToTempRelays(relayUrls, ndk);
     new OutboxService(ndk)
       .publish(zapReceipt as NostrEvent, relaySet)
       .catch((e) => warn('Could not publish zapReceipt to external: %O', e));

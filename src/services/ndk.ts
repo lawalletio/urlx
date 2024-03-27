@@ -4,7 +4,12 @@ import NDK, {
   NDKRelaySet,
 } from '@nostr-dev-kit/ndk';
 
-import { logger, requiredEnvVar } from '@lib/utils';
+import {
+  httpRequest,
+  jsonParseOrNull,
+  logger,
+  requiredEnvVar,
+} from '@lib/utils';
 import { Debugger } from 'debug';
 
 const log: Debugger = logger.extend('services:ndk');
@@ -68,16 +73,45 @@ function removeTempRelay(relayUrl: string): void {
 }
 
 /**
+ * Checks if a relay is private
+ *
+ * We define a relay as private if there is some authorization or payment that
+ * needs to be done in order to publish events
+ *
+ * @param url of the relay to check
+ * @returns true if the relay is private, false otherwise
+ */
+async function isPrivateRelay(urlString: string): Promise<boolean> {
+  const url = new URL(urlString);
+  url.protocol = 'http';
+  const info = jsonParseOrNull(
+    (await httpRequest(url, {
+      headers: { Accept: 'application/nostr+json' },
+    })) ?? '',
+  );
+  return (
+    (info?.limitation?.min_pow_difficulty ?? 0) > 0 ||
+    (info?.limitation?.auth_required ?? false) ||
+    (info?.limitation?.payment_required ?? false) ||
+    (info?.limitation?.restricted_writes ?? false)
+  );
+}
+
+/**
  * Returns a set of connected relays for publishing
  *
  * Reuses connection to known relays.
  */
-export function connectToTempRelays(
+export async function connectToTempRelays(
   relayUrls: string[],
   ndk: NDK,
-): NDKRelaySet {
+): Promise<NDKRelaySet> {
   const relays: NDKRelay[] = [];
   for (const url of relayUrls) {
+    if (await isPrivateRelay(url)) {
+      log('Wont publish to private relay %s', url);
+      continue;
+    }
     let tempRelay = tempRelaysPool.get(url);
     const timer = setTimeout(() => removeTempRelay(url), INACTIVE_TIMEOUT);
     if (tempRelay) {
