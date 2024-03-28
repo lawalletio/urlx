@@ -84,11 +84,17 @@ function removeTempRelay(relayUrl: string): void {
 async function isPrivateRelay(urlString: string): Promise<boolean> {
   const url = new URL(urlString);
   url.protocol = 'http';
-  const info = jsonParseOrNull(
-    (await httpRequest(url, {
-      headers: { Accept: 'application/nostr+json' },
-    })) ?? '',
-  );
+  let info;
+  try {
+    info = jsonParseOrNull(
+      (await httpRequest(url, {
+        headers: { Accept: 'application/nostr+json' },
+      })) ?? '',
+    );
+  } catch {
+    // if we fail to get this info we wont be able to connect
+    return true;
+  }
   return (
     (info?.limitation?.min_pow_difficulty ?? 0) > 0 ||
     (info?.limitation?.auth_required ?? false) ||
