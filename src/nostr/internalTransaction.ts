@@ -178,11 +178,16 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
-    const paymentHash = decode(bolt11).tagsObject.payment_hash;
-    if (paymentHash) {
+    const decodedInvoice = decode(bolt11);
+    const paymentHash = decodedInvoice.tagsObject.payment_hash;
+    if (
+      paymentHash &&
+      requiredEnvVar('NODE_PUBKEY') !== decodedInvoice.payeeNodeKey
+    ) {
       try {
         const check = await lnbits.checkInvoice(paymentHash);
         if (check.preimage) {
+          log('Already paid invoice for %O, publishing event', startEvent.id);
           const outboundEvent = lnOutboundTx(startEvent);
           outboundEvent.tags.push([
             'preimage',
