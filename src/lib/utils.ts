@@ -240,19 +240,25 @@ export const httpsRequest = async (
   options?: requestOptionsHttps,
 ): Promise<string | null> => {
   return new Promise((resolve: (b: string | null) => void) => {
-    requestHttps(url, options ?? {}, (res: IncomingMessage) => {
-      let bodyChunks: Uint8Array[] = [];
-      res
-        .on('data', (chunk: Uint8Array) => {
-          bodyChunks.push(chunk);
-        })
-        .on('end', () => {
-          resolve(Buffer.concat(bodyChunks).toString());
-        })
-        .on('error', () => {
-          resolve(null);
-        });
-    }).end();
+    try {
+      requestHttps(url, options ?? {}, (res: IncomingMessage) => {
+        let bodyChunks: Uint8Array[] = [];
+        res
+          .on('data', (chunk: Uint8Array) => {
+            bodyChunks.push(chunk);
+          })
+          .on('end', () => {
+            resolve(Buffer.concat(bodyChunks).toString());
+          })
+          .on('error', (err) => {
+            warn('Error in https request %O', err);
+            resolve(null);
+          });
+      }).end();
+    } catch (err) {
+      warn('Error in https request %O', err);
+      resolve(null);
+    }
   });
 };
 

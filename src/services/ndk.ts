@@ -5,7 +5,6 @@ import NDK, {
 } from '@nostr-dev-kit/ndk';
 
 import {
-  httpRequest,
   httpsRequest,
   jsonParseOrNull,
   logger,
