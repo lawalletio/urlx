@@ -6,6 +6,7 @@ import NDK, {
 
 import {
   httpRequest,
+  httpsRequest,
   jsonParseOrNull,
   logger,
   requiredEnvVar,
@@ -83,11 +84,11 @@ function removeTempRelay(relayUrl: string): void {
  */
 async function isPrivateRelay(urlString: string): Promise<boolean> {
   const url = new URL(urlString);
-  url.protocol = 'http';
+  url.protocol = 'https';
   let info;
   try {
     info = jsonParseOrNull(
-      (await httpRequest(url, {
+      (await httpsRequest(url, {
         headers: { Accept: 'application/nostr+json' },
       })) ?? '',
     );
