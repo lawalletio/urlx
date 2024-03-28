@@ -261,19 +261,25 @@ export const httpRequest = async (
   options?: requestOptionsHttp,
 ): Promise<string | null> => {
   return new Promise((resolve: (b: string | null) => void) => {
-    requestHttp(url, options ?? {}, (res: IncomingMessage) => {
-      let bodyChunks: Uint8Array[] = [];
-      res
-        .on('data', (chunk: Uint8Array) => {
-          bodyChunks.push(chunk);
-        })
-        .on('end', () => {
-          resolve(Buffer.concat(bodyChunks).toString());
-        })
-        .on('error', () => {
-          resolve(null);
-        });
-    }).end();
+    try {
+      requestHttp(url, options ?? {}, (res: IncomingMessage) => {
+        let bodyChunks: Uint8Array[] = [];
+        res
+          .on('data', (chunk: Uint8Array) => {
+            bodyChunks.push(chunk);
+          })
+          .on('end', () => {
+            resolve(Buffer.concat(bodyChunks).toString());
+          })
+          .on('error', (err) => {
+            warn('Error in http request %O', err);
+            resolve(null);
+          });
+      }).end();
+    } catch (err) {
+      warn('Error in http request %O', err);
+      resolve(null);
+    }
   });
 };
 
