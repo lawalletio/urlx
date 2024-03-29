@@ -4,12 +4,7 @@ import NDK, {
   NDKRelaySet,
 } from '@nostr-dev-kit/ndk';
 
-import {
-  httpsRequest,
-  jsonParseOrNull,
-  logger,
-  requiredEnvVar,
-} from '@lib/utils';
+import { logger, requiredEnvVar } from '@lib/utils';
 import { Debugger } from 'debug';
 
 const log: Debugger = logger.extend('services:ndk');
@@ -84,13 +79,16 @@ function removeTempRelay(relayUrl: string): void {
 async function isPrivateRelay(urlString: string): Promise<boolean> {
   const url = new URL(urlString);
   url.protocol = 'https';
-  let info;
+  let info: any;
   try {
-    info = jsonParseOrNull(
-      (await httpsRequest(url, {
-        headers: { Accept: 'application/nostr+json' },
-      })) ?? '',
-    );
+    info = await (
+      await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/nostr+json',
+        },
+      })
+    ).json();
   } catch {
     // if we fail to get this info we wont be able to connect
     return true;
