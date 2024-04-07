@@ -167,6 +167,19 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
+    const alreadyPaid =
+      'true' ===
+      ((await redis.hGet(
+        crypto.createHash('sha256').update(bolt11).digest('hex'),
+        'handled',
+      )) ?? 'false');
+    if (alreadyPaid) {
+      warn('Trying to pay same invoice twice');
+      doRevertTx(ctx.outbox, startEvent);
+      await markHandled(eventId);
+      return;
+    }
+
     const content = JSON.parse(startEvent.content, (k, v) =>
       isNaN(v) ? v : BigInt(v),
     );
