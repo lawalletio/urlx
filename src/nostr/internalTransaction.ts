@@ -167,19 +167,6 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
-    const alreadyPaid =
-      'true' ===
-      ((await redis.hGet(
-        crypto.createHash('sha256').update(bolt11).digest('hex'),
-        'handled',
-      )) ?? 'false');
-    if (alreadyPaid) {
-      warn('Trying to pay same invoice twice');
-      doRevertTx(ctx.outbox, startEvent);
-      await markHandled(eventId);
-      return;
-    }
-
     const content = JSON.parse(startEvent.content, (k, v) =>
       isNaN(v) ? v : BigInt(v),
     );
@@ -197,6 +184,18 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       paymentHash &&
       requiredEnvVar('NODE_PUBKEY') !== decodedInvoice.payeeNodeKey
     ) {
+      const alreadyPaid =
+        'true' ===
+        ((await redis.hGet(
+          crypto.createHash('sha256').update(bolt11).digest('hex'),
+          'paid',
+        )) ?? 'false');
+      if (alreadyPaid) {
+        warn('Trying to pay same invoice twice');
+        doRevertTx(ctx.outbox, startEvent);
+        await markHandled(eventId);
+        return;
+      }
       try {
         const check = await lnbits.checkInvoice(paymentHash);
         if (check.preimage) {
@@ -220,6 +219,11 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     lnbits
       .payInvoice(bolt11)
       .then(async (res: { payment_hash: string }) => {
+        await redis.hSet(
+          crypto.createHash('sha256').update(bolt11).digest('hex'),
+          'paid',
+          'true',
+        );
         log('Paid invoice for: %O', startEvent.id);
         let check: { preimage: string } | undefined;
         try {
