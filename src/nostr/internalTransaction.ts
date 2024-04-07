@@ -182,6 +182,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     if (1 !== (await redis.incr(`p:${prHash}`))) {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
+      doRevertTx(ctx.outbox, startEvent);
       await markHandled(eventId);
       return;
     }
