@@ -178,6 +178,13 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
+    const prHash = crypto.createHash('sha256').update(bolt11).digest('hex');
+    if (1 !== (await redis.incr(`p:${prHash}`))) {
+      await redis.decr(`p:${prHash}`);
+      warn('Already paying invoice for %s', eventId);
+      await markHandled(eventId);
+      return;
+    }
     const decodedInvoice = decode(bolt11);
     const paymentHash = decodedInvoice.tagsObject.payment_hash;
     if (
@@ -185,14 +192,11 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       requiredEnvVar('NODE_PUBKEY') !== decodedInvoice.payeeNodeKey
     ) {
       const alreadyPaid =
-        'true' ===
-        ((await redis.hGet(
-          crypto.createHash('sha256').update(bolt11).digest('hex'),
-          'paid',
-        )) ?? 'false');
+        'true' === ((await redis.hGet(prHash, 'paid')) ?? 'false');
       if (alreadyPaid) {
         warn('Trying to pay same invoice twice');
         doRevertTx(ctx.outbox, startEvent);
+        await redis.decr(`p:${prHash}`);
         await markHandled(eventId);
         return;
       }
@@ -210,6 +214,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
             ),
           ]);
           await ctx.outbox.publish(outboundEvent);
+          await redis.decr(`p:${prHash}`);
           await markHandled(eventId);
           return;
         }
@@ -219,11 +224,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     lnbits
       .payInvoice(bolt11)
       .then(async (res: { payment_hash: string }) => {
-        await redis.hSet(
-          crypto.createHash('sha256').update(bolt11).digest('hex'),
-          'paid',
-          'true',
-        );
+        await redis.hSet(prHash, 'paid', 'true');
         log('Paid invoice for: %O', startEvent.id);
         let check: { preimage: string } | undefined;
         try {
@@ -248,6 +249,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
         doRevertTx(ctx.outbox, startEvent);
       })
       .finally(async () => {
+        await redis.decr(`p:${prHash}`);
         await markHandled(eventId);
       });
   };
