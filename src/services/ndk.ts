@@ -12,6 +12,7 @@ const debug: Debugger = log.extend('debug');
 const warn: Debugger = log.extend('warn');
 
 const INACTIVE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+const INFO_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 let writeNDK: NDK;
 let readNDK: NDK;
 
@@ -19,8 +20,12 @@ type TempRelay = {
   relay: NDKRelay;
   timer: NodeJS.Timeout;
 };
+
+type RelayInfo = {
+  isPrivate: boolean;
+};
 const tempRelaysPool = new Map<string, TempRelay>();
-const privateRelays = new Set<string>();
+const relayInfoMap = new Map<string, RelayInfo>();
 
 /**
  * Return the NDK instance for fetching events from relays.
@@ -69,6 +74,18 @@ function removeTempRelay(relayUrl: string): void {
   }
 }
 
+function removeRelayInfo(relayUrl: string): void {
+  const relayInfo = relayInfoMap.get(relayUrl);
+  if (relayInfo) {
+    log(
+      'Deleting %s from info map, already passed %d ms',
+      relayUrl,
+      INFO_TIMEOUT,
+    );
+    relayInfoMap.delete(relayUrl);
+  }
+}
+
 /**
  * Checks if a relay is private
  *
@@ -79,8 +96,10 @@ function removeTempRelay(relayUrl: string): void {
  * @returns true if the relay is private, false otherwise
  */
 async function isPrivateRelay(urlString: string): Promise<boolean> {
-  if (privateRelays.has(urlString)) {
-    return true;
+  const relayInfo = relayInfoMap.get(urlString);
+  if (relayInfo) {
+    debug('We know %s. isPrivate: %O', urlString, relayInfo.isPrivate);
+    return relayInfo.isPrivate;
   }
   let isPrivate: boolean = false;
   const url = new URL(urlString);
@@ -106,10 +125,8 @@ async function isPrivateRelay(urlString: string): Promise<boolean> {
     (info?.limitation?.auth_required ?? false) ||
     (info?.limitation?.payment_required ?? false) ||
     (info?.limitation?.restricted_writes ?? false);
-  if (isPrivate) {
-    debug('Marking %s as private not trying ever again', urlString);
-    privateRelays.add(urlString);
-  }
+  setTimeout(removeRelayInfo, INFO_TIMEOUT, urlString);
+  relayInfoMap.set(urlString, { isPrivate });
   return isPrivate;
 }
 
