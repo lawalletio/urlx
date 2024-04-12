@@ -8,6 +8,7 @@ import { logger, requiredEnvVar } from '@lib/utils';
 import { Debugger } from 'debug';
 
 const log: Debugger = logger.extend('services:ndk');
+const debug: Debugger = log.extend('debug');
 const warn: Debugger = log.extend('warn');
 
 const INACTIVE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
@@ -19,6 +20,7 @@ type TempRelay = {
   timer: NodeJS.Timeout;
 };
 const tempRelaysPool = new Map<string, TempRelay>();
+const privateRelays = new Set<string>();
 
 /**
  * Return the NDK instance for fetching events from relays.
@@ -77,6 +79,10 @@ function removeTempRelay(relayUrl: string): void {
  * @returns true if the relay is private, false otherwise
  */
 async function isPrivateRelay(urlString: string): Promise<boolean> {
+  if (privateRelays.has(urlString)) {
+    return true;
+  }
+  let isPrivate: boolean = false;
   const url = new URL(urlString);
   url.protocol = 'https';
   let info: any;
@@ -91,14 +97,20 @@ async function isPrivateRelay(urlString: string): Promise<boolean> {
     ).json();
   } catch {
     // if we fail to get this info we wont be able to connect
-    return true;
+    warn('Unable to fetch relay info for %s', urlString);
+    isPrivate = true;
   }
-  return (
+  isPrivate =
+    isPrivate ||
     (info?.limitation?.min_pow_difficulty ?? 0) > 0 ||
     (info?.limitation?.auth_required ?? false) ||
     (info?.limitation?.payment_required ?? false) ||
-    (info?.limitation?.restricted_writes ?? false)
-  );
+    (info?.limitation?.restricted_writes ?? false);
+  if (isPrivate) {
+    debug('Marking %s as private not trying ever again', urlString);
+    privateRelays.add(urlString);
+  }
+  return isPrivate;
 }
 
 /**
