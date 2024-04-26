@@ -5,7 +5,6 @@ import type { NDKEvent, NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
 import { Kind, lnOutboundTx, revertTx } from '@lib/events';
 import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
 
-import lnbits from '@services/lnbits';
 import redis from '@services/redis';
 import { decode } from 'bolt11';
 import { Context } from '@type/request';
@@ -222,7 +221,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       } catch (err) {}
     }
 
-    lnbits
+    ctx.lnd
       .payInvoice(bolt11)
       .then(async (res: { payment_hash: string }) => {
         await redis.hSet(prHash, 'paid', 'true');

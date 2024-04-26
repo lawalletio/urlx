@@ -6,7 +6,6 @@ import { nip19, nip57 } from 'nostr-tools';
 import { createHash } from 'crypto';
 
 import { logger } from '@lib/utils';
-import lnbits from '@services/lnbits';
 import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
@@ -100,7 +99,7 @@ const handler = async (req: ExtendedRequest, res: Response) => {
 
   let pr: string | null;
   try {
-    pr = await lnbits.generateInvoice(amount, comment);
+    pr = await req.context.lnd.generateInvoice(amount, comment);
   } catch (e) {
     pr = null;
     error('Error generating invoice: %O', e);

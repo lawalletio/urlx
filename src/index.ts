@@ -5,7 +5,12 @@ import { Debugger } from 'debug';
 
 import express, { Router } from 'express';
 import * as middlewares from './lib/middlewares';
-import { EmptyRoutesError, setUpRoutes, setUpSubscriptions } from '@lib/utils';
+import {
+  EmptyRoutesError,
+  requiredEnvVar,
+  setUpRoutes,
+  setUpSubscriptions,
+} from '@lib/utils';
 import { Context, ExtendedRequest } from '@type/request';
 import 'websocket-polyfill';
 
@@ -13,6 +18,7 @@ import { logger } from '@lib/utils';
 import { getReadNDK, getWriteNDK } from '@services/ndk';
 import { NDKRelay } from '@nostr-dev-kit/ndk';
 import { OutboxService } from '@services/outbox';
+import { LndService } from '@services/lnd';
 
 const port = process.env.PORT || 8000;
 
@@ -21,7 +27,11 @@ const warn: Debugger = log.extend('warn');
 const error: Debugger = log.extend('error');
 
 const writeNDK = getWriteNDK();
-const ctx: Context = { outbox: new OutboxService(getWriteNDK()) };
+const outbox = new OutboxService(writeNDK);
+const ctx: Context = {
+  outbox,
+  lnd: new LndService(requiredEnvVar('LNDCONNECT_URI'), outbox),
+};
 
 // Instantiate ndk
 log('Instantiate NDK');

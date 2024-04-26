@@ -2,6 +2,7 @@ import NDK, { NostrEvent } from '@nostr-dev-kit/ndk';
 import { getHandler } from '@nostr/inboundTransaction';
 import { getReadNDK } from '@services/ndk';
 import redis from '@services/redis';
+import { Context } from '@type/request';
 
 const URLX_PUBKEY =
   '54dcdeb9685a9acc900fe09b53dddb0103a58924df2b4e6144daaa301261acd4';
@@ -28,7 +29,8 @@ process.env.NOSTR_PUBLIC_KEY = URLX_PUBKEY;
 process.env.LEDGER_PUBLIC_KEY = LEDGER_PUBKEY;
 
 describe('inboundTransaction handler', () => {
-  const ctx = {
+  const ctx: Context = {
+    lnd: {} as any,
     outbox: {
       publish: jest.fn(async () => {
         return;
@@ -72,11 +74,9 @@ describe('inboundTransaction handler', () => {
       .mocked(redis.hGet)
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce(pubkey);
-    jest
-      .mocked(getReadNDK)
-      .mockReturnValue({
-        fetchEvent: jest.fn().mockResolvedValue(startEvent as NostrEvent),
-      } as unknown as NDK);
+    jest.mocked(getReadNDK).mockReturnValue({
+      fetchEvent: jest.fn().mockResolvedValue(startEvent as NostrEvent),
+    } as unknown as NDK);
 
     const handler = getHandler(ctx);
     await handler(okEvent);
@@ -151,13 +151,11 @@ describe('inboundTransaction handler', () => {
         ],
         pubkey: LEDGER_PUBKEY,
       };
-      jest
-        .mocked(getReadNDK)
-        .mockReturnValue({
-          fetchEvent: jest
-            .fn()
-            .mockResolvedValue(startEvent as unknown as NostrEvent),
-        } as unknown as NDK);
+      jest.mocked(getReadNDK).mockReturnValue({
+        fetchEvent: jest
+          .fn()
+          .mockResolvedValue(startEvent as unknown as NostrEvent),
+      } as unknown as NDK);
 
       const handler = getHandler(ctx);
       await handler(okEvent);

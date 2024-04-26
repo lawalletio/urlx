@@ -24,6 +24,7 @@ const log: debug.Debugger = logger.extend('lib:utils');
 const warn: debug.Debugger = logger.extend('lib:utils:warn');
 const CREATED_AT_TOLERANCE: number = 2 * 180;
 let lastHandledTracker: LastHandledTracker;
+let writeRelayHostname: string;
 
 export class EmptyRoutesError extends Error {}
 export class DuplicateRoutesError extends Error {}
@@ -298,4 +299,24 @@ export const jsonParseOrNull = (
   } catch (e) {
     return null;
   }
+};
+
+/**
+ * Searches for the write relay hostname by getting the relay info.
+ * @return the hostname of the write relay
+ */
+export const getWriteRelayHostname = async (): Promise<string> => {
+  if (!writeRelayHostname) {
+    let url = new URL(requiredEnvVar('NOSTR_WRITE_RELAY'));
+    url.protocol = 'http';
+    const paymentsUrl = jsonParseOrNull(
+      (await httpRequest(url, {
+        headers: { Accept: 'application/nostr+json' },
+      })) ?? '',
+    )?.payments_url;
+    if (paymentsUrl) {
+      writeRelayHostname = new URL(paymentsUrl).hostname;
+    }
+  }
+  return writeRelayHostname;
 };

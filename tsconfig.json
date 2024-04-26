@@ -5,7 +5,10 @@
     "allowJs": true,
     "removeComments": true,
     "resolveJsonModule": true,
-    "typeRoots": ["./node_modules/@types"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/type"
+    ],
     "sourceMap": true,
     "outDir": "dist",
     "strict": true,
