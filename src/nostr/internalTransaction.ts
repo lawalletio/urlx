@@ -201,8 +201,8 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
         return;
       }
       try {
-        const check = await lnbits.checkInvoice(paymentHash);
-        if (check.preimage) {
+        const invoice = await ctx.lnd.getInvoice(paymentHash);
+        if ('SETTLED' === invoice.state) {
           log('Already paid invoice for %O, publishing event', startEvent.id);
           const outboundEvent = lnOutboundTx(startEvent);
           outboundEvent.tags.push([
@@ -210,7 +210,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
             await nip04.encrypt(
               requiredEnvVar('NOSTR_PRIVATE_KEY'),
               target,
-              check.preimage,
+              invoice.r_preimage.toString('hex'),
             ),
           ]);
           await ctx.outbox.publish(outboundEvent);

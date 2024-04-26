@@ -19,6 +19,10 @@ declare interface Invoice {
   value_msat: string;
 }
 
+declare interface LookupInvoiceMsg {
+  payment_hash: Buffer;
+}
+
 declare enum PaymentStatus {
   IN_FLIGHT = 'IN_FLIGHT',
   SUCCEEDED = 'SUCCEEDED',
@@ -50,6 +54,10 @@ declare interface RouterService {
   sendPaymentV2(any): EventEmitter;
 }
 
+declare interface InvoicesService {
+  lookupInvoiceV2(LookupInvoiceMsg): EventEmitter;
+}
+
 declare interface LndGrpc {
   constructor();
 
@@ -61,6 +69,7 @@ declare interface LndGrpc {
   services: {
     Lightning: LightningService;
     Router: RouterService;
+    Invoices: InvoicesService;
   };
 }
 
