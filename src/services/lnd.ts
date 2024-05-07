@@ -14,7 +14,6 @@ import { commandOptions } from 'redis';
 import { nip57 } from 'nostr-tools';
 import { NostrEvent } from '@nostr-dev-kit/ndk';
 import { createHash } from 'crypto';
-import EventEmitter from 'events';
 
 const log: Debugger = logger.extend('services:lnd');
 const warn: Debugger = log.extend('warn');
@@ -94,14 +93,9 @@ export class LndService {
   async getInvoice(paymentHash: string): Promise<Invoice> {
     await this.grpc.waitForState('active');
     const { Invoices } = this.grpc.services;
-    let call: EventEmitter;
-    try {
-      call = Invoices.lookupInvoiceV2({
-        payment_hash: Buffer.from(paymentHash, 'hex'),
-      });
-    } catch (err: unknown) {
-      return Promise.reject(err);
-    }
+    const call = Invoices.lookupInvoiceV2({
+      payment_hash: Buffer.from(paymentHash, 'hex'),
+    });
     return new Promise<Invoice>((resolve, reject) => {
       call.on('data', (res: Invoice) => resolve(res));
       call.on('error', (e: Error) => reject(e));
