@@ -218,7 +218,9 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
           await markHandled(eventId);
           return;
         }
-      } catch (err) {}
+      } catch (err) {
+        log('Failed getting invoice to check already paid');
+      }
     }
 
     ctx.lnd
