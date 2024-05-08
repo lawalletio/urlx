@@ -65,22 +65,12 @@ export class LndService {
   async payInvoice(invoice: string): Promise<Payment> {
     await this.grpc.waitForState('active');
     const { Router } = this.grpc.services;
-    const call = Router.sendPaymentV2({
+    return Router.sendPaymentV2({
       payment_request: invoice,
       timeout_seconds: 5,
       no_inflight_updates: true,
       fee_limit_msat: 1001, // TODO: is this ok?
       allow_self_payment: true,
-    });
-    return new Promise<Payment>((resolve, reject) => {
-      call.on('data', (res: Payment) => {
-        if ('SUCCEEDED' === res.status) {
-          resolve(res);
-        } else {
-          reject(res.failure_reason);
-        }
-      });
-      call.on('error', (e: Error) => reject(e));
     });
   }
 
@@ -93,12 +83,8 @@ export class LndService {
   async getInvoice(paymentHash: string): Promise<Invoice> {
     await this.grpc.waitForState('active');
     const { Invoices } = this.grpc.services;
-    const call = Invoices.lookupInvoiceV2({
+    return Invoices.lookupInvoiceV2({
       payment_hash: Buffer.from(paymentHash, 'hex'),
-    });
-    return new Promise<Invoice>((resolve, reject) => {
-      call.on('data', (res: Invoice) => resolve(res));
-      call.on('error', (e: Error) => reject(e));
     });
   }
 
