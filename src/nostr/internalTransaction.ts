@@ -227,6 +227,11 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     ctx.lnd
       .payInvoice(bolt11)
       .then(async (payment: Payment) => {
+        if ('SUCCEEDED' !== payment.status) {
+          warn('Failed paying invoice, reverting transaction: %O', payment);
+          doRevertTx(ctx.outbox, startEvent);
+          return;
+        }
         await redis.hSet(prHash, 'paid', 'true');
         log('Paid invoice for: %O', startEvent.id);
         if (

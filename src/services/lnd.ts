@@ -71,12 +71,6 @@ export class LndService {
       no_inflight_updates: true,
       fee_limit_msat: 1001, // TODO: is this ok?
       allow_self_payment: true,
-    }).then((payment: Payment) => {
-      if ('SUCCEEDED' !== payment.status) {
-        error('Error paying invoice: %O', payment);
-        throw new Error(payment.failure_reason);
-      }
-      return payment;
     });
   }
 
