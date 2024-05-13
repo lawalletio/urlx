@@ -72,7 +72,7 @@ export class LndService {
       fee_limit_msat: 1001, // TODO: is this ok?
       allow_self_payment: true,
     });
-    if (PaymentStatus.SUCCEEDED !== payment.status) {
+    if ('SUCCEEDED' !== payment.status) {
       error('Error paying invoice: %O', payment);
       throw new Error(payment.failure_reason);
     }
