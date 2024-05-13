@@ -19,6 +19,7 @@ globalThis.crypto = crypto;
 const log: Debugger = logger.extend('nostr:internalTransaction');
 
 const warn: Debugger = log.extend('warn');
+const error: Debugger = log.extend('error');
 const debug: Debugger = log.extend('debug');
 
 const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
@@ -228,6 +229,15 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       .then(async (payment: Payment) => {
         await redis.hSet(prHash, 'paid', 'true');
         log('Paid invoice for: %O', startEvent.id);
+        if (
+          paymentHash !==
+          crypto
+            .createHash('sha256')
+            .update(Buffer.from(payment.payment_preimage, 'hex'))
+            .digest('hex')
+        ) {
+          error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
+        }
         const outboundEvent = lnOutboundTx(startEvent);
         outboundEvent.tags.push([
           'preimage',
@@ -239,8 +249,8 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
         ]);
         ctx.outbox.publish(outboundEvent);
       })
-      .catch((error) => {
-        warn('Failed paying invoice, reverting transaction: %O', error);
+      .catch((err) => {
+        warn('Failed paying invoice, reverting transaction: %O', err);
         doRevertTx(ctx.outbox, startEvent);
       })
       .finally(async () => {
