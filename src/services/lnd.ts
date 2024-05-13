@@ -62,14 +62,14 @@ export class LndService {
    * Tries to pay an invoice, return a void promise that resolves on
    * success and fails otherwise with reason.
    */
-  async payInvoice(invoice: string): Promise<Payment> {
+  async payInvoice(invoice: string, feeLimit: number): Promise<Payment> {
     await this.grpc.waitForState('active');
     const { Router } = this.grpc.services;
     const call = Router.sendPaymentV2({
       payment_request: invoice,
       timeout_seconds: 5,
       no_inflight_updates: true,
-      fee_limit_msat: 1001, // TODO: is this ok?
+      fee_limit_msat: feeLimit,
       allow_self_payment: true,
     });
     return new Promise<Payment>((resolve, reject) => {
