@@ -65,12 +65,22 @@ export class LndService {
   async payInvoice(invoice: string): Promise<Payment> {
     await this.grpc.waitForState('active');
     const { Router } = this.grpc.services;
-    return Router.sendPaymentV2({
+    const call = Router.sendPaymentV2({
       payment_request: invoice,
       timeout_seconds: 5,
       no_inflight_updates: true,
       fee_limit_msat: 1001, // TODO: is this ok?
       allow_self_payment: true,
+    });
+    return new Promise<Payment>((resolve, reject) => {
+      call.on('data', (res: Payment) => {
+        if ('SUCCEEDED' === res.status) {
+          resolve(res);
+        } else {
+          reject(res.failure_reason);
+        }
+      });
+      call.on('error', (e: Error) => reject(e));
     });
   }
 
