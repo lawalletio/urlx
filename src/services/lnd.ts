@@ -178,12 +178,8 @@ export class LndService {
   async getInvoice(paymentHash: string): Promise<Invoice> {
     await this.grpc.waitForState('active');
     const { Invoices } = this.grpc.services;
-    const call = Invoices.lookupInvoiceV2({
+    return Invoices.lookupInvoiceV2({
       payment_hash: Buffer.from(paymentHash, 'hex'),
-    });
-    return new Promise<Invoice>((resolve, reject) => {
-      call.on('data', (res: Invoice) => resolve(res));
-      call.on('error', (e: Error) => reject(e));
     });
   }
 
