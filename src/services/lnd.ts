@@ -192,13 +192,8 @@ export class LndService {
   async cancelInvoice(paymentHash: string): Promise<void> {
     await this.grpc.waitForState('active');
     const { Invoices } = this.grpc.services;
-    const call = Invoices.cancelInvoice({
+    return Invoices.cancelInvoice({
       payment_hash: Buffer.from(paymentHash, 'hex'),
-    });
-    return new Promise((resolve, reject) => {
-      call.on('data', resolve);
-      call.on('end', resolve);
-      call.on('error', reject);
     });
   }
 
