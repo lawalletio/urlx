@@ -13,6 +13,7 @@ import { getReadNDK } from '@services/ndk';
 import { nip04 } from 'nostr-tools';
 
 import * as crypto from 'node:crypto';
+import { settleInvoice } from '@services/lnd';
 // @ts-ignore
 globalThis.crypto = crypto;
 
@@ -103,6 +104,26 @@ async function markHandled(eventId: string) {
 }
 
 /**
+ * Mark the given event as paid, publishing the outbound event
+ */
+async function markPaid(
+  target: string,
+  startEvent: NDKEvent,
+  prHash: string,
+  preimage: string,
+  ctx: Context,
+) {
+  await redis.hSet(prHash, 'paid', 'true');
+  log('Paid invoice for: %O', startEvent.id);
+  const outboundEvent = lnOutboundTx(startEvent);
+  outboundEvent.tags.push([
+    'preimage',
+    await nip04.encrypt(requiredEnvVar('NOSTR_PRIVATE_KEY'), target, preimage),
+  ]);
+  ctx.outbox.publish(outboundEvent);
+}
+
+/**
  * Publish a revert of the given event
  */
 function doRevertTx(outbox: Outbox, event: NDKEvent): void {
@@ -173,7 +194,8 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       isNaN(v) ? v : BigInt(v),
     );
 
-    if (content.tokens[BITCOIN_TOKEN_NAME] !== extractAmount(bolt11)) {
+    const amount = extractAmount(bolt11);
+    if (content.tokens[BITCOIN_TOKEN_NAME] !== amount) {
       warn('Content amount and invoice amount are different');
       doRevertTx(ctx.outbox, startEvent);
       await markHandled(eventId);
@@ -189,52 +211,70 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
     const decodedInvoice = decode(bolt11);
-    const paymentHash = decodedInvoice.tagsObject.payment_hash;
-    if (
-      paymentHash &&
-      requiredEnvVar('NODE_PUBKEY') !== decodedInvoice.payeeNodeKey
-    ) {
-      const alreadyPaid =
-        'true' === ((await redis.hGet(prHash, 'paid')) ?? 'false');
-      if (alreadyPaid) {
-        warn('Trying to pay same invoice twice');
-        doRevertTx(ctx.outbox, startEvent);
+    const paymentHash = decodedInvoice.tagsObject.payment_hash!;
+    const alreadyPaid =
+      'true' === ((await redis.hGet(prHash, 'paid')) ?? 'false');
+    if (alreadyPaid) {
+      warn('Trying to pay same invoice twice');
+      doRevertTx(ctx.outbox, startEvent);
+      await redis.decr(`p:${prHash}`);
+      await markHandled(eventId);
+      return;
+    }
+    let invoice: Invoice | undefined = undefined;
+    try {
+      invoice = await ctx.lnd.getInvoice(paymentHash);
+      if (
+        'SETTLED' === invoice.state &&
+        requiredEnvVar('NODE_PUBKEY') !== decodedInvoice.payeeNodeKey
+      ) {
+        log('Already paid invoice for %O, publishing event', startEvent.id);
+        const outboundEvent = lnOutboundTx(startEvent);
+        outboundEvent.tags.push([
+          'preimage',
+          await nip04.encrypt(
+            requiredEnvVar('NOSTR_PRIVATE_KEY'),
+            target,
+            invoice.r_preimage.toString('hex'),
+          ),
+        ]);
+        await ctx.outbox.publish(outboundEvent);
         await redis.decr(`p:${prHash}`);
         await markHandled(eventId);
         return;
       }
-      try {
-        const invoice = await ctx.lnd.getInvoice(paymentHash);
-        if ('SETTLED' === invoice.state) {
-          log('Already paid invoice for %O, publishing event', startEvent.id);
-          const outboundEvent = lnOutboundTx(startEvent);
-          outboundEvent.tags.push([
-            'preimage',
-            await nip04.encrypt(
-              requiredEnvVar('NOSTR_PRIVATE_KEY'),
-              target,
-              invoice.r_preimage.toString('hex'),
-            ),
-          ]);
-          await ctx.outbox.publish(outboundEvent);
+    } catch (err: unknown) {
+      log('Error getting invoice: %O', err);
+    }
+    if (
+      invoice &&
+      requiredEnvVar('NODE_PUBKEY') === decodedInvoice.payeeNodeKey
+    ) {
+      const preimage = invoice.r_preimage.toString('hex');
+      ctx.lnd
+        .cancelInvoice(paymentHash!)
+        .then(async () => {
+          await markPaid(target, startEvent, prHash, preimage, ctx);
+          await settleInvoice(bolt11, amount!, ctx.outbox);
+        })
+        .catch((err) => {
+          warn('Failed paying invoice, reverting transaction: %O', err);
+          doRevertTx(ctx.outbox, startEvent);
+        })
+        .finally(async () => {
           await redis.decr(`p:${prHash}`);
           await markHandled(eventId);
-          return;
-        }
-      } catch (err: unknown) {
-        log('Error getting invoice: %O', err);
-      }
+        });
+      return;
     }
-
     const feeLimit = Math.max(
       ACCEPTED_BASE_FEE,
       Number(decodedInvoice.millisatoshis) * ACCEPTED_FEE_PERCENT,
     );
+
     ctx.lnd
       .payInvoice(bolt11, feeLimit)
       .then(async (payment: Payment) => {
-        await redis.hSet(prHash, 'paid', 'true');
-        log('Paid invoice for: %O', startEvent.id);
         if (
           paymentHash !==
           crypto
@@ -244,16 +284,8 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
         ) {
           error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
         }
-        const outboundEvent = lnOutboundTx(startEvent);
-        outboundEvent.tags.push([
-          'preimage',
-          await nip04.encrypt(
-            requiredEnvVar('NOSTR_PRIVATE_KEY'),
-            target,
-            payment.payment_preimage,
-          ),
-        ]);
-        ctx.outbox.publish(outboundEvent);
+        const preimage = payment.payment_preimage;
+        await markPaid(target, startEvent, prHash, preimage, ctx);
       })
       .catch((err) => {
         warn('Failed paying invoice, reverting transaction: %O', err);

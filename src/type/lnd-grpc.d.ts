@@ -23,6 +23,10 @@ declare interface LookupInvoiceMsg {
   payment_hash: Buffer;
 }
 
+declare interface CancelInvoiceMsg {
+  payment_hash: Buffer;
+}
+
 declare enum PaymentStatus {
   IN_FLIGHT = 'IN_FLIGHT',
   SUCCEEDED = 'SUCCEEDED',
@@ -56,6 +60,7 @@ declare interface RouterService {
 
 declare interface InvoicesService {
   lookupInvoiceV2(LookupInvoiceMsg): EventEmitter;
+  cancelInvoice(CancelInvoiceMsg): EventEmitter;
 }
 
 declare interface LndGrpc {
