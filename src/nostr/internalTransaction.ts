@@ -24,8 +24,8 @@ const debug: Debugger = log.extend('debug');
 
 const invoiceAmountRegex: RegExp = /^\D+(?<amount>\d+)(?<multiplier>[mnpu]?)1/i;
 const BITCOIN_TOKEN_NAME = 'BTC';
-const ACCEPTED_BASE_FEE = 2000; // 2 sats
-const ACCEPTED_FEE_PERCENT = 0.001; // 0.1%
+const ACCEPTED_BASE_FEE = Number(requiredEnvVar('ACCEPTED_BASE_FEE'));
+const ACCEPTED_FEE_PERCENT = Number(requiredEnvVar('ACCEPTED_FEE_PERCENT'));
 
 const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
@@ -226,14 +226,12 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       }
     }
 
+    const feeLimit = Math.max(
+      ACCEPTED_BASE_FEE,
+      Number(decodedInvoice.millisatoshis) * ACCEPTED_FEE_PERCENT,
+    );
     ctx.lnd
-      .payInvoice(
-        bolt11,
-        Math.max(
-          ACCEPTED_BASE_FEE,
-          Number(decodedInvoice.millisatoshis) * ACCEPTED_FEE_PERCENT,
-        ),
-      )
+      .payInvoice(bolt11, feeLimit)
       .then(async (payment: Payment) => {
         await redis.hSet(prHash, 'paid', 'true');
         log('Paid invoice for: %O', startEvent.id);
