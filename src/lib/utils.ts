@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import debug from 'debug';
 import { Router } from 'express';
 import { globSync } from 'glob';
@@ -320,3 +321,16 @@ export const getWriteRelayHostname = async (): Promise<string> => {
   }
   return writeRelayHostname;
 };
+
+/**
+ * Hashes the input in a  case insensitive way
+ *
+ * @param paymentRequest to be hashed
+ * @return the resulting hash
+ *
+ */
+export function hashPaymentRequest(paymentRequest: string): string {
+  return createHash('sha256')
+    .update(paymentRequest.toLowerCase())
+    .digest('hex');
+}

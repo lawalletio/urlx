@@ -74,7 +74,7 @@ describe('lnd service', () => {
       }),
     });
 
-    await lnd.payInvoice(pr);
+    await lnd.payInvoice(pr, 1000);
 
     expect(lndGrcpMock.services.Router.sendPaymentV2).toHaveBeenCalledWith(
       expect.objectContaining({ payment_request: pr }),
@@ -87,6 +87,6 @@ describe('lnd service', () => {
       }),
     });
 
-    await expect(lnd.payInvoice(pr)).rejects.toBe('FAILURE_REASON_ERROR');
+    await expect(lnd.payInvoice(pr, 1000)).rejects.toBe('FAILURE_REASON_ERROR');
   });
 });

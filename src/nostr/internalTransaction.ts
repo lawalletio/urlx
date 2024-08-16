@@ -3,7 +3,12 @@ import { Debugger } from 'debug';
 import type { NDKEvent, NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
 
 import { Kind, lnOutboundTx, revertTx } from '@lib/events';
-import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
+import {
+  hashPaymentRequest,
+  logger,
+  nowInSeconds,
+  requiredEnvVar,
+} from '@lib/utils';
 
 import redis from '@services/redis';
 import { decode } from 'bolt11';
@@ -202,7 +207,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       return;
     }
 
-    const prHash = crypto.createHash('sha256').update(bolt11).digest('hex');
+    const prHash = hashPaymentRequest(bolt11);
     if (1 !== (await redis.incr(`p:${prHash}`))) {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
@@ -277,10 +282,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       .then(async (payment: Payment) => {
         if (
           paymentHash !==
-          crypto
-            .createHash('sha256')
-            .update(Buffer.from(payment.payment_preimage, 'hex'))
-            .digest('hex')
+          hashPaymentRequest(Buffer.from(payment.payment_preimage, 'hex'))
         ) {
           error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
         }

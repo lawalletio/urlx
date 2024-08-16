@@ -1,6 +1,7 @@
 import LndGrpc from 'lnd-grpc';
 import {
   getWriteRelayHostname,
+  hashPaymentRequest,
   logger,
   requiredEnvVar,
   shuffled,
@@ -13,7 +14,6 @@ import { connectToTempRelays, getSignerNDK } from '@services/ndk';
 import { commandOptions } from 'redis';
 import { nip57 } from 'nostr-tools';
 import { NostrEvent } from '@nostr-dev-kit/ndk';
-import { createHash } from 'crypto';
 
 const log: Debugger = logger.extend('services:lnd');
 const warn: Debugger = log.extend('warn');
@@ -34,9 +34,7 @@ export async function settleInvoice(
   outbox: Outbox,
 ) {
   log('Received settled invoice');
-  const prHash: string = createHash('sha256')
-    .update(paymentRequest)
-    .digest('hex');
+  const prHash: string = hashPaymentRequest(paymentRequest);
   if (1 !== (await redis.incr(`a:${prHash}`))) {
     await redis.decr(`a:${prHash}`);
     warn('Already processing invoice');

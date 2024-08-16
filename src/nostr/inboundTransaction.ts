@@ -3,12 +3,16 @@ import { Debugger } from 'debug';
 import type { NDKEvent, NDKFilter, NostrEvent } from '@nostr-dev-kit/ndk';
 
 import { Kind, internalTx } from '@lib/events';
-import { logger, nowInSeconds, requiredEnvVar } from '@lib/utils';
+import {
+  hashPaymentRequest,
+  logger,
+  nowInSeconds,
+  requiredEnvVar,
+} from '@lib/utils';
 
 import redis from '@services/redis';
 import { Context } from '@type/request';
 import { getReadNDK } from '@services/ndk';
-import { createHash } from 'crypto';
 import { commandOptions } from 'redis';
 
 const log: Debugger = logger.extend('nostr:inboundTransaction');
@@ -131,7 +135,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => Promise<void>) => {
       return;
     }
 
-    const prHash: string = createHash('sha256').update(bolt11).digest('hex');
+    const prHash: string = hashPaymentRequest(bolt11);
     const pubkey = await redis.hGet(
       commandOptions({ returnBuffers: false }),
       prHash,
