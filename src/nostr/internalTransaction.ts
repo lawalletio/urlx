@@ -282,7 +282,10 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       .then(async (payment: Payment) => {
         if (
           paymentHash !==
-          hashPaymentRequest(Buffer.from(payment.payment_preimage, 'hex'))
+          crypto
+            .createHash('sha256')
+            .update(Buffer.from(payment.payment_preimage, 'hex'))
+            .digest('hex')
         ) {
           error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
         }
