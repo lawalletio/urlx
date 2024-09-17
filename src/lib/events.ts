@@ -11,12 +11,20 @@ export enum Kind {
 
 /**
  * Create an inbound transaction event based on paid invoice
+ *
+ * @param amount of the invoice
+ * @param invoice to pay
+ * @param pubkey of the receiver
+ * @param comment to add to the event
+ * @param extraTags to add to the event
+ * @returns the created `NostrEvent`
  */
 export function lnInboundTx(
   amount: bigint,
   invoice: string,
   pubkey: string,
   comment?: string,
+  extraTags?: string[][],
 ): NostrEvent {
   const content = {
     ...{
@@ -38,6 +46,7 @@ export function lnInboundTx(
       ['p', pubkey],
       ['t', 'inbound-transaction-start'],
       ['bolt11', invoice],
+      ...(extraTags ?? []),
     ],
   };
 }

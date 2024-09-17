@@ -55,6 +55,7 @@ export async function settleInvoice(
     await redis.decr(`a:${prHash}`);
     return;
   }
+  let extraTags: string[][] = [];
   if (zapRequest) {
     const zapReceipt = nip57.makeZapReceipt({
       zapRequest,
@@ -76,6 +77,7 @@ export async function settleInvoice(
     ).slice(-5);
     const ndk = getSignerNDK();
     const relaySet = await connectToTempRelays(relayUrls, ndk);
+    extraTags = zapReceipt.tags.filter((t) => 'e' === t[0]);
     new OutboxService(ndk)
       .publish(zapReceipt as NostrEvent, relaySet)
       .catch((e) => warn('Could not publish zapReceipt to external: %O', e));
@@ -90,6 +92,7 @@ export async function settleInvoice(
         paymentRequest,
         requiredEnvVar('NOSTR_PUBLIC_KEY'),
         comment,
+        extraTags,
       ),
     )
     .then(async () => {
