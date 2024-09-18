@@ -148,8 +148,10 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => Promise<void>) => {
       return;
     }
 
+    const extraTags = event.tags.filter((t) => 'e' === t[0]);
+
     ctx.outbox
-      .publish(internalTx(pubkey, startEvent.content, startEventId))
+      .publish(internalTx(pubkey, startEvent.content, extraTags))
       .then(() => {
         log('Sucessfully published transaction');
       })

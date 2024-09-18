@@ -32,7 +32,7 @@ describe('Events utils', () => {
         '2a35ae821e88ff118e3be9f99f4106afd5a6eb07a8ef1f08b143ddb22cfd4e82';
       const content = '{"tokens":{"BTC":"332000"}}';
 
-      const event = internalTx(RECEIVER_PUBKEY, content, eventId);
+      const event = internalTx(RECEIVER_PUBKEY, content, [['e', eventId]]);
       const [target, receiver] = event.tags
         .filter((t) => 'p' === t[0])
         .map((t) => t[1]);

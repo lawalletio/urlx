@@ -104,22 +104,20 @@ export function revertTx(event: NDKEvent): NostrEvent {
  *
  * @param pubkey of the receiver
  * @param content of the event to be created
- * @param eventId to be referred as a 'e' tag
+ * @param extraTags to add to the event
  * @returns the created `NostrEvent`
  */
 export function internalTx(
   pubkey: string,
   content: string,
-  eventId?: string,
+  extraTags?: string[][],
 ): NostrEvent {
   const tags = [
     ['p', requiredEnvVar('LEDGER_PUBLIC_KEY')],
     ['p', pubkey],
     ['t', 'internal-transaction-start'],
+    ...(extraTags ?? []),
   ];
-  if (eventId) {
-    tags.push(['e', eventId]);
-  }
   return {
     content,
     created_at: nowInSeconds(),
