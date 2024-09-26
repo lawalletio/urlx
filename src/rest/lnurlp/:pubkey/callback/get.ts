@@ -2,13 +2,16 @@ import { Debugger } from 'debug';
 import type { Response } from 'express';
 import type { ExtendedRequest } from '@type/request';
 import { nip19, nip57 } from 'nostr-tools';
+import { decode } from 'bolt11';
 
-import { hashPaymentRequest, logger } from '@lib/utils';
+import { hashPaymentRequest, logger, requiredEnvVar } from '@lib/utils';
 import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:pubkey:callback:get');
 const debug: Debugger = log.extend('debug');
 const error: Debugger = log.extend('error');
+
+const BASE_URL = requiredEnvVar('BASE_URL');
 
 /**
  * Extract a valid pubkey from the given argument
@@ -107,13 +110,22 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  redis.hSet(hashPaymentRequest(pr), {
+  const paymentHash = decode(pr).tagsObject.payment_hash!;
+  const prHash = hashPaymentRequest(pr);
+  redis.hSet(prHash, {
     pubkey,
     zapRequest,
     comment,
     handled: 'false',
   });
-  res.status(200).json({ pr, routes: [] }).send();
+  res
+    .status(200)
+    .json({
+      pr,
+      routes: [],
+      verify: `${BASE_URL}/lnurlp/verify/${paymentHash}`,
+    })
+    .send();
 };
 
 export default handler;
