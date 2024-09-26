@@ -2,6 +2,10 @@ import get from '@rest/lnurlp/verify/:paymentHash/get';
 import type { ExtendedRequest } from '@type/request';
 import type { Response } from 'express';
 
+jest.mock('@services/redis', () => ({
+  hGet: jest.fn().mockResolvedValue(undefined),
+}));
+
 describe('GET /lnurlp/verify/:paymentHash', () => {
   it('should error on null payment hash', async () => {
     const mockReq = {

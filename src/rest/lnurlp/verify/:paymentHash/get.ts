@@ -2,7 +2,8 @@ import { Debugger } from 'debug';
 import type { Response } from 'express';
 import type { ExtendedRequest } from '@type/request';
 
-import { logger } from '@lib/utils';
+import { hashPaymentRequest, logger } from '@lib/utils';
+import redis from '@services/redis';
 
 const log: Debugger = logger.extend('rest:lnurlp:verify:paymentHash:get');
 const debug: Debugger = log.extend('debug');
@@ -41,9 +42,11 @@ const handler = async (req: ExtendedRequest, res: Response) => {
     return;
   }
 
-  const settled: boolean = invoice.state === 'SETTLED';
+  const prHash = hashPaymentRequest(invoice.payment_request);
+  const paid = 'true' === (await redis.hGet(prHash, 'paid'));
+  const settled: boolean = paid || invoice.state === 'SETTLED';
   const preimage: string | null = settled
-    ? invoice.r_preimage?.toString('hex') ?? null
+    ? invoice.r_preimage.toString('hex')
     : null;
   res
     .status(200)
