@@ -49,6 +49,12 @@ declare interface Payment {
   payment_preimage: string;
 }
 
+declare interface ConnectOptions {
+  host: string,
+  cert: string,
+  macaroon: string 
+}
+
 declare interface LightningService {
   addInvoice(invoice: AddInvoiceRequest): Promise<AddInvoiceResponse>;
   subscribeInvoices(any): EventEmitter;

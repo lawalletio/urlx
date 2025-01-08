@@ -30,7 +30,7 @@ const writeNDK = getWriteNDK();
 const outbox = new OutboxService(writeNDK);
 const ctx: Context = {
   outbox,
-  lnd: new LndService(requiredEnvVar('LNDCONNECT_URI'), outbox),
+  lnd: new LndService({ host: requiredEnvVar('LND_HOST'), cert: requiredEnvVar('LND_CERT'), macaroon: requiredEnvVar('LND_MACAROON') }, outbox),
 };
 
 // Instantiate ndk
