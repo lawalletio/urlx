@@ -20,7 +20,7 @@ import {
 
 type RouteMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
-export const logger: debug.Debugger = debug(process.env.MODULE_NAME || '');
+export const logger: debug.Debugger = debug(process.env.MODULE_NAME || 'urlx');
 const log: debug.Debugger = logger.extend('lib:utils');
 const warn: debug.Debugger = logger.extend('lib:utils:warn');
 const CREATED_AT_TOLERANCE: number = 2 * 180;
