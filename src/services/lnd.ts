@@ -119,10 +119,12 @@ export class LndService {
    * Starts connection up and sets subscriptions up.
    */
   constructor(
-    lndconnectUri: string,
+    connectOptions: ConnectOptions,
     private readonly outbox: Outbox,
   ) {
-    this.grpc = new LndGrpc({ lndconnectUri });
+    const { host, cert, macaroon } = connectOptions;
+
+    this.grpc = new LndGrpc({ host, cert, macaroon });
     this.connect().then(() => this.setUpSubscriptions());
   }
 
