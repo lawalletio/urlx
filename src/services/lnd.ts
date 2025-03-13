@@ -153,6 +153,7 @@ export class LndService {
     const { Router } = this.grpc.services;
     const call = Router.sendPaymentV2({
       payment_request: invoice,
+      payment_hash: hashPaymentRequest(invoice),
       timeout_seconds: 15,
       no_inflight_updates: true,
       fee_limit_msat: feeLimit,

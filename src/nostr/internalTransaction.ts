@@ -214,7 +214,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
       ctx.lnd
-        .trackPayment(paymentHash)
+        .trackPayment(prHash)
         .then(async (payment: Payment) => {
           if (
             paymentHash !==
@@ -229,7 +229,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
           await markPaid(target, startEvent, prHash, preimage, ctx);
         })
         .catch((err) => {
-          warn('Failed paying invoice, reverting transaction: %O', err);
+          warn('Failed Tracking payment, reverting transaction: %O', err);
           doRevertTx(ctx.outbox, startEvent);
         })
         .finally(async () => {
