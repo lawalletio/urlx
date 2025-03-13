@@ -210,6 +210,8 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     const prHash = hashPaymentRequest(bolt11);
     const decodedInvoice = decode(bolt11);
     const paymentHash = decodedInvoice.tagsObject.payment_hash!;
+    debug('Payment hash: %s', paymentHash);
+    debug('prHash: %s', prHash);
     if (1 !== (await redis.incr(`p:${prHash}`))) {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
