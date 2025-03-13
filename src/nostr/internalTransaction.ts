@@ -208,15 +208,36 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
     }
 
     const prHash = hashPaymentRequest(bolt11);
+    const decodedInvoice = decode(bolt11);
+    const paymentHash = decodedInvoice.tagsObject.payment_hash!;
     if (1 !== (await redis.incr(`p:${prHash}`))) {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
-      doRevertTx(ctx.outbox, startEvent);
-      await markHandled(eventId);
+      ctx.lnd
+        .trackPayment(paymentHash)
+        .then(async (payment: Payment) => {
+          if (
+            paymentHash !==
+            crypto
+              .createHash('sha256')
+              .update(Buffer.from(payment.payment_preimage, 'hex'))
+              .digest('hex')
+          ) {
+            error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
+          }
+          const preimage = payment.payment_preimage;
+          await markPaid(target, startEvent, prHash, preimage, ctx);
+        })
+        .catch((err) => {
+          warn('Failed paying invoice, reverting transaction: %O', err);
+          doRevertTx(ctx.outbox, startEvent);
+        })
+        .finally(async () => {
+          await redis.decr(`p:${prHash}`);
+          await markHandled(eventId);
+        });
       return;
     }
-    const decodedInvoice = decode(bolt11);
-    const paymentHash = decodedInvoice.tagsObject.payment_hash!;
     const alreadyPaid =
       'true' === ((await redis.hGet(prHash, 'paid')) ?? 'false');
     if (alreadyPaid) {

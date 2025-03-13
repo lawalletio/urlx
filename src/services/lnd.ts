@@ -170,6 +170,25 @@ export class LndService {
     });
   }
 
+  async trackPayment(paymentHash: string): Promise<Payment> {
+    await this.grpc.waitForState('active');
+    const { Router } = this.grpc.services;
+    const call = Router.trackPaymentV2({
+      payment_hash: paymentHash,
+      no_inflight_updates: true,
+    });
+    return new Promise((resolve, reject) => {
+      call.on('data', (res: Payment) => {
+        if ('SUCCEEDED' === res.status) {
+          resolve(res);
+        } else {
+          reject(res.failure_reason);
+        }
+      });
+      call.on('error', (e: Error) => reject(e));
+    });
+  }
+
   /**
    * Get information about an invoice by its payment hash
    *

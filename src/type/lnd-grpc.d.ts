@@ -56,6 +56,7 @@ declare interface LightningService {
 
 declare interface RouterService {
   sendPaymentV2(any): EventEmitter;
+  trackPaymentV2(any): EventEmitter;
 }
 
 declare interface InvoicesService {
