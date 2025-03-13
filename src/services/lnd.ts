@@ -174,7 +174,7 @@ export class LndService {
     await this.grpc.waitForState('active');
     const { Router } = this.grpc.services;
     const call = Router.trackPaymentV2({
-      payment_hash: paymentHash,
+      payment_hash: Buffer.from(paymentHash, 'hex'),
       no_inflight_updates: true,
     });
     return new Promise((resolve, reject) => {

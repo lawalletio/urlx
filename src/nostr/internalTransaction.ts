@@ -216,7 +216,7 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
       await redis.decr(`p:${prHash}`);
       warn('Already paying invoice for %s', eventId);
       ctx.lnd
-        .trackPayment(prHash)
+        .trackPayment(paymentHash)
         .then(async (payment: Payment) => {
           if (
             paymentHash !==
