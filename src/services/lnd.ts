@@ -163,7 +163,7 @@ export class LndService {
         if ('SUCCEEDED' === res.status) {
           resolve(res);
         } else {
-          reject(res.failure_reason);
+          reject(res);
         }
       });
       call.on('error', (e: Error) => reject(e));
@@ -182,7 +182,7 @@ export class LndService {
         if ('SUCCEEDED' === res.status) {
           resolve(res);
         } else {
-          reject(res.failure_reason);
+          reject(res);
         }
       });
       call.on('error', (e: Error) => reject(e));

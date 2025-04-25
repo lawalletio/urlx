@@ -226,17 +226,22 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
               .digest('hex')
           ) {
             error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
+            throw new Error('Invalid preimage');
           }
           const preimage = payment.payment_preimage;
           await markPaid(target, startEvent, prHash, preimage, ctx);
-        })
-        .catch((err) => {
-          warn('Failed Tracking payment, reverting transaction: %O', err);
-          doRevertTx(ctx.outbox, startEvent);
-        })
-        .finally(async () => {
           await redis.decr(`p:${prHash}`);
           await markHandled(eventId);
+        })
+        .catch(async (err) => {
+          if ('status' in err && err.status === 'FAILED') {
+            warn('Failed Tracking payment, reverting transaction: %O', err);
+            doRevertTx(ctx.outbox, startEvent);
+            await redis.decr(`p:${prHash}`);
+            await markHandled(eventId);
+            return;
+          }
+          error('Failed Tracking payment: %O', err);
         });
       return;
     }
@@ -311,17 +316,22 @@ const getHandler = (ctx: Context): ((event: NostrEvent) => void) => {
             .digest('hex')
         ) {
           error('INVALID PREIMAGE ON "SUCCEEDED" PAYMENT %O', payment);
+          throw new Error('Invalid preimage');
         }
         const preimage = payment.payment_preimage;
         await markPaid(target, startEvent, prHash, preimage, ctx);
-      })
-      .catch((err) => {
-        warn('Failed paying invoice, reverting transaction: %O', err);
-        doRevertTx(ctx.outbox, startEvent);
-      })
-      .finally(async () => {
         await redis.decr(`p:${prHash}`);
         await markHandled(eventId);
+      })
+      .catch(async (err) => {
+        if ('status' in err && err.status === 'FAILED') {
+          warn('Failed paying invoice, reverting transaction: %O', err);
+          doRevertTx(ctx.outbox, startEvent);
+          await redis.decr(`p:${prHash}`);
+          await markHandled(eventId);
+          return;
+        }
+        error('Failed paying invoice: %O', err);
       });
   };
 };

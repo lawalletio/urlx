@@ -1,0 +1,41 @@
+name: Test
+
+on:
+  push:
+    paths-ignore:
+      - 'umbrel-app/**'
+      - 'README.md'
+      - 'LICENSE.md'
+      - '.env.*'
+    branches:
+      - main
+  pull_request:
+    paths-ignore:
+      - 'umbrel-app/**'
+      - 'README.md'
+      - 'LICENSE.md'
+      - '.env.*'
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20.x, 22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install dependencies
+        run: pnpm install
+      - name: Run tests
+        run: pnpm test
