@@ -35,6 +35,7 @@ const ACCEPTED_FEE_PERCENT = Number(requiredEnvVar('ACCEPTED_FEE_PERCENT'));
 
 const filter: NDKFilter = {
   kinds: [Kind.REGULAR.valueOf()],
+  authors: [requiredEnvVar('LEDGER_PUBLIC_KEY')],
   '#p': [requiredEnvVar('NOSTR_PUBLIC_KEY')],
   '#t': ['internal-transaction-ok'],
   since: nowInSeconds() - 86000,
